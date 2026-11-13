@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createPlayer } from '../mount/index.js';
 import type { HudSpec } from '../mount/index.js';
-import { catalog } from './index.js';
+import { catalog, presets } from './index.js';
 
 const entries: readonly (readonly [string, HudSpec])[] = Object.entries(catalog);
 
@@ -80,4 +80,11 @@ test('every state shows at every size at which anything is drawn', () => {
       }
     }
   }
+});
+
+test('every catalogue entry is offered as a preset under a readable name', () => {
+  const offered = Object.values(presets) as readonly HudSpec[];
+  assert.equal(offered.length, entries.length);
+  for (const [name, spec] of entries) assert.ok(offered.includes(spec), name);
+  for (const name of Object.keys(presets)) assert.match(name, /^(ring|arc|frame)-[a-z]+$/);
 });

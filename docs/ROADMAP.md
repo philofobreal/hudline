@@ -9,16 +9,15 @@ Work happens only in the milestone marked **current**. Durations assume one expe
 | M2, 1 week | `motion`: spin, drift, draw-on, value, noise, states | Same seed and time give the same output; transitions are smooth when interrupted | done; accepted by delegation |
 | M3, 1.5 weeks | Frame track: corner and edge operators, bands, detail dropping | Catalogue frames are correct at three sizes; details drop by priority without flicker at thresholds | done; accepted by delegation. Hysteresis followed in M4 |
 | M4, 1 week | `mount`: observers, interactions, lifecycle | 50 animated elements run without dropped frames; no leaks after hosts are removed; reduced motion respected | done; tried by the maintainer, who found two defects that are fixed (D-036, D-039) |
-| M5, 1 week | Addressable bands, diagonal hatch, preset library | The frames and rings of the reference images come from presets | **current**: addressable bands and hatch are done and F6 completes the catalogue; the named preset library and attaching by attribute are not started |
+| M5, 1 week | Addressable bands, diagonal hatch, preset library | The frames and rings of the reference images come from presets | **current**: implemented and tested; waits for the maintainer to try `gallery.html` |
 | Later | Canvas `surface` | Same spec renders on canvas within a 1 px visual tolerance | not scheduled |
 
 ## Measured in M4
 
-`npm run perf` writes a page with fifty attached drawings, all set to their busiest state, and times the library's work in every animation frame. In headless Chrome on the development machine: 0.60 ms median, 2.2 ms at the 95th percentile, 3.0 ms at most, at about 60 frames per second. This is script time only; style and paint are not included, and no other browser or device has been measured.
+`npm run perf` writes a page with fifty attached drawings, all set to their busiest state, and times the library's work in every animation frame. In headless Chrome on the development machine, after M5 (hatch and part-by-part bands included): 0.70 ms median, 1.8 ms at the 95th percentile, 2.5 ms at most, at about 60 frames per second. The figures move by a few tenths from run to run. This is script time only; style and paint are not included, and no other browser or device has been measured.
 
 ## Not done in M4
 
-- Attaching by a `data-hud` attribute: it needs named presets, which arrive in M5.
 - Hysteresis for tick, dot and segment counts.
 - The host's size is read in whole pixels (`clientWidth`, `clientHeight`); a host with a fractional size is drawn up to half a pixel off.
 

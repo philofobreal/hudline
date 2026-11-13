@@ -267,3 +267,9 @@ Decision: Every span's ends are pulled in by 0.05 px from where the anchor arith
 Why: An anchor's ends are corners of the track. A dash that ends exactly on a corner picks up a sliver of the turn there or not, depending on the last decimal of a rounded number, so the ends of the tab's fill showed notches that jumped from frame to frame while the band's width changed on hover.
 Rejected: More decimals (moves the threshold, does not remove it); drawing fills as separate shapes (a second drawing mechanism for one artefact).
 Known limit: the fill is as long as the flat part of its own centreline, which gets a little shorter as the band gets wider, so its ends still move by about half a pixel during a hover, smoothly.
+
+## D-043 Presets by name, and asking in markup
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: The catalogue is offered as `presets`, keyed by readable names (`frame-tabbed`, `ring-scale`, …). Presets are fixed, plain data; to vary one, spread it into a spec of your own. `watch(specs, root?)` draws on every element with `data-hud="name"`, follows `data-hud-state`, and keeps up as elements and attributes come, change and go. It takes the specs as an argument: there is no global registry. The export `catalog`, keyed by document ids, is no longer public.
+Why: Fixed data needs no parameter language and cannot drift from what the tests render. A registry passed in is visible at the call, works with several sets on one page, and keeps `mount` from importing the catalogue.
+Rejected: Parameterised preset functions (a second API to learn, for what a spread does); a global `define(name, spec)` (hidden state); two public exports of the same drawings.

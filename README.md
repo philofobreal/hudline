@@ -8,22 +8,42 @@ Dependency-free TypeScript library for animated, monochrome HUD-style frames and
 
 Every shape is a **track** (lines and circular arcs), one or more **bands** along it, and a dash **pattern** on each band. Animating a shape means driving the pattern's phase and proportions, so motion always follows the outline, on straight edges, corners and circles alike.
 
-```ts
-import { attach, type HudSpec } from 'hudline';
+The quickest way is to ask in markup and let one call do the rest:
 
-const spec: HudSpec = {
+```html
+<section data-hud="frame-tabbed">…</section>
+<button data-hud="frame-chamfered">Launch</button>
+<div data-hud="ring-scale" data-hud-state="alert"></div>
+```
+
+```ts
+import { presets, watch } from 'hudline';
+
+watch(presets);   // draws on every element that asks, now and as the page changes
+```
+
+Ten presets come with the library; `docs/CATALOG.md` lists them. They are plain data, so your own specs sit beside them:
+
+```ts
+import { attach, presets, watch, type HudSpec } from 'hudline';
+
+const panel: HudSpec = {
   shape: { kind: 'frame', corners: { tl: { kind: 'chamfer', size: 12 } } },
   bands: [
     { id: 'outline', width: 1 },
-    { id: 'runner', offset: 3, width: 2, pattern: { kind: 'dashes', dash: 18, gap: 42 }, motion: { drift: 40 } },
+    { id: 'strip', offset: 4, width: 6, pattern: { kind: 'dashes', dash: 18, gap: 42 },
+      fill: { kind: 'hatch', drift: 10 }, motion: { drift: 40 } },
   ],
   states: {
     hover: { bands: { outline: { width: 2 } } },
   },
 };
 
-const hud = attach(element, spec);   // draws at once, follows the element's size
+watch({ ...presets, panel });        // data-hud="panel" now works too
+
+const hud = attach(element, panel);  // or attach by hand: draws at once, follows the element's size
 hud.set('alert');                    // any state the spec defines
+hud.update({ strip: { width: 9 } }); // a lasting change, by band id
 hud.detach();
 ```
 

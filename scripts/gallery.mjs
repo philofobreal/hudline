@@ -11,14 +11,20 @@ import { bundle } from './bundle.mjs';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const library = bundle(join(root, 'dist', 'index.js'), 'hudline');
 
-const RINGS = { R1: 'Segmented ring', R2: 'Scale ring', R3: 'Irregular block ring', R4: 'Value arc' };
+// Preset name → what the gallery calls it.
+const RINGS = {
+  'ring-segmented': 'R1 · Segmented ring',
+  'ring-scale': 'R2 · Scale ring',
+  'ring-blocks': 'R3 · Irregular block ring',
+  'arc-value': 'R4 · Value arc',
+};
 const FRAMES = {
-  F1: 'Chamfered frame',
-  F2: 'Tabbed frame',
-  F3: 'Stepped frame',
-  F4: 'Double frame',
-  F5: 'Corner brackets',
-  F6: 'Hatched edge strip',
+  'frame-chamfered': 'F1 · Chamfered frame',
+  'frame-tabbed': 'F2 · Tabbed frame',
+  'frame-stepped': 'F3 · Stepped frame',
+  'frame-double': 'F4 · Double frame',
+  'frame-brackets': 'F5 · Corner brackets',
+  'frame-hatched': 'F6 · Hatched edge strip',
 };
 const RING_SIZES = [48, 96, 200].map((size) => [size, size]);
 const FRAME_SIZES = [
@@ -28,35 +34,35 @@ const FRAME_SIZES = [
 ];
 
 const cell = (id, [width, height], resizable = false) =>
-  `<figure><div class="hud${resizable ? ' resizable' : ''}" data-id="${id}" tabindex="0" style="width:${width}px;height:${height}px"></div>` +
+  `<figure><div class="hud${resizable ? ' resizable' : ''}" data-hud="${id}" tabindex="0" style="width:${width}px;height:${height}px"></div>` +
   `<figcaption>${resizable ? 'drag the corner' : `${width} × ${height}`}</figcaption></figure>`;
 
 const section = (names, sizes, resizable) =>
   Object.entries(names)
     .map(([id, name]) => {
       const cells = sizes.map((size) => cell(id, size)).join('') + (resizable ? cell(id, [240, 120], true) : '');
-      return `<section><h2>${id} · ${name}</h2><div class="row">${cells}</div></section>`;
+      return `<section><h2>${name} <code>${id}</code></h2><div class="row">${cells}</div></section>`;
     })
     .join('\n');
 
 const inUse = `<section><h2>In use · content padded by the published insets, and a value kept up to date</h2><div class="row">
-<div class="panel" data-id="F2"><strong>NAV-07</strong><span>The text keeps clear of the frame because its padding comes from the four inset properties the library sets on this element.</span></div>
-<div class="panel" data-id="F4"><strong>LINK</strong><span>Resize me by the corner. The padding follows.</span></div>
-<figure><div class="hud" id="gauge" data-id="R4" style="width:120px;height:120px"><output id="readout">70 %</output></div>
+<div class="panel" data-hud="frame-tabbed"><strong>NAV-07</strong><span>The text keeps clear of the frame because its padding comes from the four inset properties the library sets on this element.</span></div>
+<div class="panel" data-hud="frame-double"><strong>LINK</strong><span>Resize me by the corner. The padding follows.</span></div>
+<figure><div class="hud" id="gauge" data-hud="arc-value" style="width:120px;height:120px"><output id="readout">70 %</output></div>
 <figcaption><input id="level" type="range" min="0" max="100" value="70" aria-label="Level"></figcaption></figure>
 </div></section>`;
 
 const rows = `${inUse}\n${section(FRAMES, FRAME_SIZES, true)}\n${section(RINGS, RING_SIZES, false)}`;
 
-// The page script. Everything on the page is attached with the library's
-// own DOM binding; hovering a shape enters its hover state by itself.
+// The page script. Nothing here attaches anything by hand: the elements
+// ask in markup and one watch draws on them.
 const page = `
-const hosts = [...document.querySelectorAll('[data-id]')];
-const huds = new Map();
-const attachAll = () => hosts.forEach((host) => huds.set(host, hudline.attach(host, hudline.catalog[host.dataset.id])));
+const { presets, watch, attach } = hudline;
+let watching = watch(presets);
+const asking = () => document.querySelectorAll('[data-hud]');
 
 function setState(name) {
-  for (const hud of huds.values()) hud.set(name);
+  for (const element of asking()) element.dataset.hudState = name;
   for (const button of document.querySelectorAll('[data-state]')) {
     button.setAttribute('aria-pressed', String(button.dataset.state === name));
   }
@@ -65,20 +71,19 @@ for (const button of document.querySelectorAll('[data-state]')) {
   button.addEventListener('click', () => setState(button.dataset.state));
 }
 document.querySelector('[data-replay]').addEventListener('click', () => {
-  for (const hud of huds.values()) hud.detach();
-  attachAll();
+  watching.stop();
   setState('idle');
+  watching = watch(presets);
 });
 
+// Attaching to an element that already has a drawing returns its handle.
 const gauge = document.querySelector('#gauge');
 const level = document.querySelector('#level');
 const readout = document.querySelector('#readout');
 level.addEventListener('input', () => {
   readout.textContent = level.value + ' %';
-  huds.get(gauge).update({ value: { value: level.value / 100 } });
+  attach(gauge, presets['arc-value']).update({ value: { value: level.value / 100 } });
 });
-
-attachAll();
 `;
 
 const html = `<!doctype html>
@@ -94,6 +99,8 @@ const html = `<!doctype html>
   h1 { font-size: 15px; margin: 0 0 4px; }
   p { margin: 0 0 16px; color: var(--muted); max-width: 60ch; }
   h2 { font-size: 12px; font-weight: 400; margin: 0 0 12px; color: var(--muted); }
+  h2 code { font: inherit; opacity: 0.7; margin-left: 8px; }
+  h2 code::before { content: 'data-hud="'; } h2 code::after { content: '"'; }
   section { margin-bottom: 32px; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
   button { font: inherit; color: inherit; background: none; border: 1px solid var(--line);
@@ -115,7 +122,7 @@ const html = `<!doctype html>
   .hud.resizable { resize: both; overflow: hidden; min-width: 16px; min-height: 16px; max-width: 100%; }
 </style>
 <h1>hudline · catalogue</h1>
-<p>Milestone M4: every shape here is attached to a plain element with the library's DOM binding. Point at a shape to see its hover state. The buttons put all of them into a state. The last frame of each row can be resized by its bottom-right corner: details keep their pixel sizes and drop out when they no longer fit.</p>
+<p>Every shape here is a plain element that asks for a drawing in markup, with the attribute shown beside its name; one call to <code>watch(presets)</code> does the rest. Point at a shape to see its hover state. The buttons set <code>data-hud-state</code> on all of them. The last frame of each row can be resized by its bottom-right corner: details keep their pixel sizes and drop out when they no longer fit.</p>
 <div class="bar">
   <button type="button" data-state="idle" aria-pressed="true">idle</button>
   <button type="button" data-state="hover" aria-pressed="false">hover</button>

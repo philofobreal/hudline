@@ -22,8 +22,8 @@ A ring is a track that is a circle. A frame is a track that is a closed polygon 
 | `pattern` | Layout of each pattern kind, seam fitting, thinning on short bands, wrapping and merging of intervals | `compile(spec, context) → Dashes` |
 | `motion` | Springs, noise, how travel accumulates across changes of speed, seeded randomness | `begin(target) → BandState`, `steer(state, target, time, settle) → BandState`, `sample(state, length, closed, time, out)`, `moving(state, closed, time)`, `partLevel(state, part, time)` |
 | `surface` | How bands become SVG elements and dash arrays; how a hatch is painted; how a band is split into parts; which elements a live drawing has and what is written on each paint; later canvas drawing | `svgMarkup(scene) → string`, `createSvgSurface(host) → SvgSurface`, `partCount(dashes, patternLength)` |
-| `mount` | How a spec is played (which bands fit, seed mixing, states to targets, what is recomputed when); observers, the shared loop, lifecycle, turning DOM events into states | the public API: `attach`, `createPlayer`, `renderToString` |
-| `catalog` | Nothing; it is data: the catalogue entries as typed specs, later the presets | `catalog` |
+| `mount` | How a spec is played (which bands fit, seed mixing, states to targets, what is recomputed when); observers, the shared loop, lifecycle, turning DOM events into states | the public API: `attach`, `watch`, `createPlayer`, `renderToString` |
+| `catalog` | Nothing; it is data: the catalogue entries as typed specs | `presets` |
 
 ### Dependency rule
 
@@ -57,6 +57,8 @@ Each module owns the part of the spec language that describes its own decisions,
 ### Public API
 
 ```ts
+watch(presets);                               // draws on every element with data-hud="name"
+
 const hud = attach(element, spec);            // idempotent; draws at once
 hud.set('alert');                             // state change
 hud.update({ value: { value: 0.7 } });        // lasting change to a band, by id
@@ -114,6 +116,7 @@ A band that only travels or flickers costs one `sample` and one changed attribut
 - Because the child is out of flow and the padding box is what is measured, padding driven by the inset properties cannot feed back into the drawing's size.
 - Listeners on the host: `pointerenter`, `pointerleave`, `pointerdown`, `pointerup`, `pointercancel`, `focusin`, `focusout`, all passive. Everything is removed on detach.
 - Void elements (`img`, `input` and the like) are not supported: `attach` returns a handle that does nothing.
+- `watch` reads two attributes: `data-hud` (the name of a spec) and `data-hud-state` (the state to show). It observes the root it is given with one `MutationObserver`.
 
 ## 6. Fill and addressable bands
 
@@ -124,5 +127,5 @@ A dashed stroke cannot address its parts one by one. A band marked `addressable`
 ## 7. Performance
 
 - Designed for at most 50 animated drawings per page.
-- Target: under 2 ms of script time per frame for 50 drawings. Measured in headless Chrome with all 50 in their busiest state: 0.60 ms median, 2.2 ms at the 95th percentile. See the roadmap for what that figure does and does not cover.
+- Target: under 2 ms of script time per frame for 50 drawings. Measured in headless Chrome with all 50 in their busiest state: 0.70 ms median, 1.8 ms at the 95th percentile. See the roadmap for what that figure does and does not cover.
 - A drawing at rest does no work per frame. A moving one allocates nothing but the strings it writes to attributes.

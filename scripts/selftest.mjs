@@ -13,7 +13,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const library = bundle(join(root, 'dist', 'index.js'), 'hudline');
 
 const page = `
-const { attach, catalog } = hudline;
+const { attach, presets, watch } = hudline;
 const results = [];
 const check = (name, ok, detail = '') => results.push({ name, ok: Boolean(ok), detail: String(detail) });
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -42,7 +42,7 @@ async function writesDuring(element, ms) {
 async function run() {
   // 1. Attaching.
   const frame = host(200, 100);
-  const hud = attach(frame, catalog.F4);
+  const hud = attach(frame, presets['frame-double']);
   check('draws at once as one svg child', frame.children.length === 1 && frame.firstElementChild.localName === 'svg');
   check('a static host becomes relative', getComputedStyle(frame).position === 'relative');
   check('the svg covers the host and lets the pointer through', (() => {
@@ -50,7 +50,7 @@ async function run() {
     return box.width === 200 && box.height === 100 && getComputedStyle(frame.firstElementChild).pointerEvents === 'none';
   })());
   check('insets are published', frame.style.getPropertyValue('--hud-inset-top').endsWith('px'), frame.style.getPropertyValue('--hud-inset-top'));
-  check('attaching again keeps one drawing and one handle', attach(frame, catalog.F4) === hud && frame.querySelectorAll('svg').length === 1);
+  check('attaching again keeps one drawing and one handle', attach(frame, presets['frame-double']) === hud && frame.querySelectorAll('svg').length === 1);
 
   // 2. Draw-on runs and ends.
   await wait(2200);
@@ -85,7 +85,7 @@ async function run() {
 
   // 6. Details drop out and come back with room to spare.
   const tabbed = host(260, 90);
-  attach(tabbed, catalog.F2);
+  attach(tabbed, presets['frame-tabbed']);
   await wait(2200);
   const fill = () => shown(paths(tabbed)[1]);
   check('the tab is filled when it fits', fill());
@@ -98,7 +98,7 @@ async function run() {
 
   // 7. A band asked to grow past what a small ring holds stays visible.
   const small = host(48, 48);
-  const smallHud = attach(small, catalog.R1);
+  const smallHud = attach(small, presets['ring-segmented']);
   await wait(2200);
   small.dispatchEvent(new PointerEvent('pointerenter'));
   await wait(900);
@@ -132,7 +132,7 @@ async function run() {
 
   // 9. A value kept up to date.
   const gauge = host(120, 120);
-  const gaugeHud = attach(gauge, catalog.R4);
+  const gaugeHud = attach(gauge, presets['arc-value']);
   await wait(2200);
   const partial = paths(gauge)[1].getAttribute('d');
   gaugeHud.update({ value: { value: 1 } });
@@ -143,7 +143,7 @@ async function run() {
 
   // 10. Out of sight, nothing is written.
   const far = host(100, 100, 'margin-top:3000px');
-  attach(far, catalog.R3);
+  attach(far, presets['ring-blocks']);
   await wait(600);
   check('a spinning ring out of view writes nothing', (await writesDuring(far, 400)) === 0);
   far.scrollIntoView();
@@ -163,7 +163,7 @@ async function run() {
 
   // 12. Hatch and part-by-part bands, as a browser sees them.
   const hatched = host(240, 100);
-  attach(hatched, catalog.F6);
+  attach(hatched, presets['frame-hatched']);
   await wait(2200);
   const pattern = hatched.querySelector('svg > defs > pattern');
   const strip = paths(hatched)[1];
@@ -176,15 +176,37 @@ async function run() {
   check('the strip is one stretch of the length the span asks for', stripLength > 55 && stripLength < 75, strip.getAttribute('stroke-dasharray'));
 
   const blocks = host(200, 200);
-  attach(blocks, catalog.R3);
+  attach(blocks, presets['ring-blocks']);
   await wait(2200);
   const drawn = paths(blocks).filter(shown);
   const levels = new Set(drawn.map((path) => path.getAttribute('opacity')));
   check('a band drawn part by part has many elements with differing brightness', drawn.length > 8 && levels.size > 3, drawn.length + ' paths, ' + levels.size + ' levels');
 
-  // 13. Elements that cannot hold a drawing.
+  // 13. Asking in markup.
+  const zone = stage.appendChild(document.createElement('div'));
+  zone.innerHTML = '<div data-hud="frame-double" style="width:160px;height:80px"></div><div data-hud="nothing by that name" style="width:40px;height:40px"></div>';
+  const [asked, unknown] = zone.children;
+  const watching = watch(presets, zone);
+  check('watch draws on an element that asks by name', asked.querySelector('svg') !== null);
+  check('and leaves an unknown name alone', unknown.querySelector('svg') === null);
+  const late = zone.appendChild(document.createElement('div'));
+  late.style.cssText = 'width:80px;height:80px';
+  late.dataset.hud = 'ring-segmented';
+  await frames(3);
+  check('an element added later is drawn on', late.querySelector('svg') !== null);
+  await wait(2200);
+  asked.dataset.hudState = 'hover';
+  await wait(900);
+  check('the state attribute sets the state', paths(asked)[2].getAttribute('stroke-width') === '5', paths(asked)[2].getAttribute('stroke-width'));
+  delete asked.dataset.hud;
+  await frames(3);
+  check('removing the attribute removes the drawing', asked.querySelector('svg') === null);
+  watching.stop();
+  check('stopping the watch removes what it drew', late.querySelector('svg') === null);
+
+  // 14. Elements that cannot hold a drawing.
   const image = stage.appendChild(document.createElement('img'));
-  attach(image, catalog.F1).set('alert');
+  attach(image, presets['frame-chamfered']).set('alert');
   check('an img is left alone', image.children.length === 0 && image.style.position === '');
 }
 
@@ -212,7 +234,7 @@ const html = `<!doctype html>
   ul { list-style: none; padding: 0; white-space: pre; }
   .bad { color: #ff8a7a; }
 </style>
-<strong id="summary">running, about 25 seconds…</strong>
+<strong id="summary">running, about 30 seconds…</strong>
 <ul id="list"></ul>
 <div id="stage"></div>
 <script>

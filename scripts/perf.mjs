@@ -34,12 +34,12 @@ window.requestAnimationFrame = (callback) =>
     samples.push(performance.now() - before);
   });
 ${library}
-const ids = Object.keys(hudline.catalog);
+const ids = Object.keys(hudline.presets);
 const grid = document.querySelector('#grid');
 const huds = [];
 for (let i = 0; i < 50; i++) {
   const host = grid.appendChild(document.createElement('div'));
-  huds.push(hudline.attach(host, hudline.catalog[ids[i % ids.length]]));
+  huds.push(hudline.attach(host, hudline.presets[ids[i % ids.length]]));
 }
 // Everything in its busiest state: travelling and flickering.
 setTimeout(() => huds.forEach((hud) => hud.set('alert')), 1200);

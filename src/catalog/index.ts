@@ -2,8 +2,8 @@
  * catalog — the primitive catalogue as data.
  *
  * Every entry of `docs/CATALOG.md` is written here as a typed constant,
- * so the compiler proves that the spec language covers it. Later this
- * grows into the preset library. Contains data only; imports types and nothing else.
+ * so the compiler proves that the spec language covers it, and offered
+ * to users by name as `presets`. Contains data only; imports types and nothing else.
  *
  * Every entry defines the states `enter`, `hover` and `alert`, so that
  * the gallery can show how each reacts.
@@ -387,7 +387,28 @@ const hatchedFrame: HudSpec = {
   },
 };
 
-/** The catalogue, keyed by the identifiers used in `docs/CATALOG.md`. */
+/**
+ * Ready-made drawings, by name. Each defines the states `enter` (it
+ * draws on), `hover` and `alert`. They are plain data: spread one into
+ * a spec of your own to change it.
+ */
+export const presets = {
+  'ring-segmented': segmentedRing,
+  'ring-scale': scaleRing,
+  'ring-blocks': blockRing,
+  'arc-value': valueArc,
+  'frame-chamfered': chamferedFrame,
+  'frame-tabbed': tabbedFrame,
+  'frame-stepped': steppedFrame,
+  'frame-double': doubleFrame,
+  'frame-brackets': cornerBrackets,
+  'frame-hatched': hatchedFrame,
+} as const satisfies Readonly<Record<string, HudSpec>>;
+
+/**
+ * The same drawings keyed by the identifiers of `docs/CATALOG.md`, for
+ * the tests that check the catalogue. Not part of the public API.
+ */
 export const catalog = {
   R1: segmentedRing,
   R2: scaleRing,

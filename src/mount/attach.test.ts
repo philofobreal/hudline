@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { attach } from './attach.js';
+import { watch } from './watch.js';
 import type { HudSpec } from './spec.js';
 
 /*
@@ -14,6 +15,7 @@ class FakeElement {
   readonly children: FakeElement[] = [];
   readonly listeners = new Map<string, Set<() => void>>();
   readonly ownerDocument = fakeDocument;
+  readonly nodeType = 1;
   parent: FakeElement | undefined;
   isConnected = true;
   clientWidth = 0;
@@ -41,6 +43,23 @@ class FakeElement {
   removeAttribute(name: string): void {
     this.attributes.delete(name);
     this.writes++;
+  }
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null;
+  }
+  hasAttribute(name: string): boolean {
+    return this.attributes.has(name);
+  }
+  /** Understands `[name]`, which is all the library asks for. */
+  querySelectorAll(selector: string): FakeElement[] {
+    const name = selector.slice(1, -1);
+    return this.children.flatMap((child) => [
+      ...(child.hasAttribute(name) ? [child] : []),
+      ...child.querySelectorAll(selector),
+    ]);
+  }
+  contains(other: FakeElement): boolean {
+    return this.children.some((child) => child === other || child.contains(other));
   }
   get firstChild(): FakeElement | null {
     return this.children[0] ?? null;
@@ -87,6 +106,17 @@ class FakeObserver<Entry> {
   }
 }
 class FakeResizeObserver extends FakeObserver<{ target: FakeElement }> {}
+interface FakeMutation {
+  type: 'attributes' | 'childList';
+  target: FakeElement;
+  addedNodes: FakeElement[];
+  removedNodes: FakeElement[];
+}
+class FakeMutationObserver extends FakeObserver<FakeMutation> {
+  disconnect(): void {
+    this.observed.clear();
+  }
+}
 class FakeIntersectionObserver extends FakeObserver<{ target: FakeElement; isIntersecting: boolean }> {}
 
 let milliseconds = 0;
@@ -99,6 +129,7 @@ Object.assign(globalThis, {
   getComputedStyle: (element: FakeElement) => ({ position: element.computedPosition }),
   ResizeObserver: FakeResizeObserver,
   IntersectionObserver: FakeIntersectionObserver,
+  MutationObserver: FakeMutationObserver,
   requestAnimationFrame: (callback: () => void) => queue.push(callback),
   matchMedia: () => ({
     get matches() {
@@ -478,4 +509,96 @@ test('elements that cannot hold a drawing get a handle that does nothing', () =>
   hud.detach();
   assert.equal(image.children.length, 0);
   assert.equal(image.style.position, '');
+});
+
+/** Tells every mutation observer that watches `root` about a change under it. */
+function mutated(root: FakeElement, change: Partial<FakeMutation> & { target: FakeElement }): void {
+  for (const observer of FakeObserver.all) {
+    if (observer instanceof FakeMutationObserver && observer.observed.has(root)) {
+      observer.callback([{ type: 'childList', addedNodes: [], removedNodes: [], ...change }]);
+    }
+  }
+}
+function marked(name: string, state?: string): FakeElement {
+  const element = host();
+  element.setAttribute('data-hud', name);
+  if (state !== undefined) element.setAttribute('data-hud-state', state);
+  return element;
+}
+const specs = { panel: frameSpec, dial: spinning };
+const observe = (root: FakeElement) => watch(specs, root as unknown as ParentNode);
+
+test('watch draws on every element that asks by name and ignores unknown names', () => {
+  const root = host();
+  const panel = root.appendChild(marked('panel'));
+  const nested = root.appendChild(host()).appendChild(marked('dial'));
+  const unknown = root.appendChild(marked('no such thing'));
+  const plain = root.appendChild(host());
+  const watching = observe(root);
+  assert.equal(svgOf(panel).length, 1);
+  assert.equal(svgOf(nested).length, 1);
+  assert.equal(svgOf(unknown).length, 0);
+  assert.equal(svgOf(plain).length, 0);
+  watching.stop();
+  assert.equal(svgOf(panel).length + svgOf(nested).length, 0);
+  settle();
+});
+
+test('watch follows the state attribute', () => {
+  const root = host();
+  const panel = root.appendChild(marked('panel', 'alert'));
+  const watching = observe(root);
+  settle();
+  assert.equal(attribute(panel, 0, 'stroke-width'), '3');
+  panel.removeAttribute('data-hud-state');
+  mutated(root, { type: 'attributes', target: panel });
+  settle();
+  assert.equal(attribute(panel, 0, 'stroke-width'), '1');
+  panel.setAttribute('data-hud-state', 'alert');
+  mutated(root, { type: 'attributes', target: panel });
+  settle();
+  assert.equal(attribute(panel, 0, 'stroke-width'), '3');
+  watching.stop();
+});
+
+test('watch follows elements and names that come, change and go', () => {
+  const root = host();
+  const watching = observe(root);
+  const late = root.appendChild(marked('panel'));
+  mutated(root, { target: root, addedNodes: [late] });
+  assert.equal(svgOf(late).length, 1);
+  assert.match(attribute(late, 0, 'd') ?? '', /^M106 2\.5/);
+
+  late.setAttribute('data-hud', 'dial');
+  mutated(root, { type: 'attributes', target: late });
+  assert.equal(svgOf(late).length, 1);
+  assert.match(attribute(late, 0, 'd') ?? '', /^M100 2A/);
+
+  late.removeAttribute('data-hud');
+  mutated(root, { type: 'attributes', target: late });
+  assert.equal(svgOf(late).length, 0);
+
+  const wrapper = root.appendChild(host());
+  const inside = wrapper.appendChild(marked('panel'));
+  mutated(root, { target: root, addedNodes: [wrapper] });
+  assert.equal(svgOf(inside).length, 1);
+  // Moved within the document: still connected, so it keeps its drawing.
+  mutated(root, { target: root, removedNodes: [wrapper], addedNodes: [wrapper] });
+  assert.equal(svgOf(inside).length, 1);
+  // Gone for good.
+  wrapper.isConnected = false;
+  inside.isConnected = false;
+  mutated(root, { target: root, removedNodes: [wrapper] });
+  assert.equal(svgOf(inside).length, 0);
+  watching.stop();
+  settle();
+});
+
+test('a stopped watch no longer reacts', () => {
+  const root = host();
+  const watching = observe(root);
+  watching.stop();
+  const late = root.appendChild(marked('panel'));
+  mutated(root, { target: root, addedNodes: [late] });
+  assert.equal(svgOf(late).length, 0);
 });

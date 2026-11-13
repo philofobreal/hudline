@@ -2,7 +2,24 @@
 
 Status: milestone M0 closed. The maintainer delegated the open decisions to the agent's recommendations on 2026-11-13 (see `DECISIONS.md`, D-011 to D-016).
 
-The entries below come from the maintainer's reference images. All ten are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. All ten render and move: `npm run gallery` writes `gallery.html`, in which every entry is attached to a plain element with `attach`: the frames at three sizes plus one that can be resized by hand, the rings at three sizes, two panels whose padding comes from the published insets, and a gauge driven by `update`. Pointing at a shape enters its `hover` state; buttons set `alert` and replay `enter`.
+The entries below come from the maintainer's reference images. All ten are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. All ten render and move: `npm run gallery` writes `gallery.html`, in which every entry is a plain element that asks for its drawing with `data-hud`: the frames at three sizes plus one that can be resized by hand, the rings at three sizes, two panels whose padding comes from the published insets, and a gauge driven by `update`. Pointing at a shape enters its `hover` state; buttons set `alert` and replay `enter`.
+
+## Names
+
+Every entry is a preset. In markup, `data-hud="name"` asks for it.
+
+| Id | Preset name |
+|---|---|
+| R1 | `ring-segmented` |
+| R2 | `ring-scale` |
+| R3 | `ring-blocks` |
+| R4 | `arc-value` |
+| F1 | `frame-chamfered` |
+| F2 | `frame-tabbed` |
+| F3 | `frame-stepped` |
+| F4 | `frame-double` |
+| F5 | `frame-brackets` |
+| F6 | `frame-hatched` |
 
 ## Rings
 
