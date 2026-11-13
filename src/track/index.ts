@@ -1,18 +1,19 @@
 /**
  * track — geometry.
  *
- * Hides: how a shape description becomes a centreline of straight
- * segments and circular arcs; the angle convention; corner operators
- * (chamfer, fillet) and the edge operator (step); which details drop out
- * when space is short; how offsets are computed and when they collapse;
+ * Hides: how a shape description becomes a centreline of straight lines
+ * and circular arcs; the angle convention; how frame corners are fitted
+ * and steps are placed or left out; where the seam lies; when a band is
+ * too deep for a shape; how parallel
+ * tracks are computed and what happens to details an offset consumes;
  * arc length; where named anchors lie. Knows nothing about the DOM,
  * rendering or time. Pure.
  *
  * Interface: `resolve(shape, width, height) → Track`,
- * `offset(track, distance) → Track` and `portion(track, share) → Track`. Rings and arcs work today; frames
- * resolve to an empty track until milestone M3.
+ * `offset(track, distance) → Track`, `portion(track, share) → Track` and
+ * `holds(track, from, to) → boolean`.
  */
-export { offset, portion, resolve } from './track.js';
+export { holds, offset, portion, resolve } from './track.js';
 export type { Anchor, Track } from './track.js';
 export type {
   Along,

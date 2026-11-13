@@ -24,7 +24,7 @@ test('band ids are unique within an entry and states refer to existing ids', () 
     const ids = spec.bands.flatMap((band) => (band.id === undefined ? [] : [band.id]));
     assert.equal(new Set(ids).size, ids.length, name);
     for (const state of Object.values(spec.states ?? {})) {
-      for (const id of Object.keys(state)) assert.ok(ids.includes(id), `${name}: ${id}`);
+      for (const id of Object.keys(state.bands)) assert.ok(ids.includes(id), `${name}: ${id}`);
     }
   }
 });

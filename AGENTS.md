@@ -45,7 +45,7 @@ If a task seems to require breaking one of these, stop and ask.
 3. **Pure core.** `track`, `pattern` and `motion` never touch `window`, `document`, timers, `Math.random` or `Date`. Time and seeds are parameters.
 4. **Lines and circular arcs only.** No Béziers, no path flattening. Arc length and offsets are exact closed-form values.
 5. **Never mutate host layout.** The library may add one absolutely positioned, pointer-transparent child and set CSS custom properties on the host. It may set `position: relative` only when the host is `static`. Nothing else.
-6. **No exceptions in normal use.** Invalid or extreme input is clamped or degrades (details drop out by priority). `attach` is idempotent. Removed hosts clean up automatically.
+6. **No exceptions in normal use.** Invalid or extreme input is clamped or degrades (details that do not fit drop out). `attach` is idempotent. Removed hosts clean up automatically.
 7. **Determinism.** Same spec, same size, same seed, same time → same output.
 8. **No allocation in the per-frame path.** Geometry is rebuilt on resize only.
 9. **Reduced motion.** `prefers-reduced-motion` and hidden documents stop animation.

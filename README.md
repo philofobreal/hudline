@@ -2,7 +2,7 @@
 
 Dependency-free TypeScript library for animated, monochrome HUD-style frames and rings on existing DOM elements.
 
-**Status:** early. Rings and arcs render and animate through a headless player. No frames and no DOM binding yet: `attach` is not implemented. See `docs/ROADMAP.md`.
+**Status:** early. Frames, rings and arcs render and animate through a headless player. No DOM binding yet: `attach` is not implemented. See `docs/ROADMAP.md`.
 
 ## Idea
 

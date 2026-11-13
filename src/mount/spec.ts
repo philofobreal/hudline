@@ -29,14 +29,10 @@ export interface BandSpec {
   readonly motion?: MotionSpec;
   /**
    * Render every interval as its own element so that it can flicker or
-   * be styled alone. Costs nodes; default false.
+   * be styled alone. Costs nodes; default false. Not honoured before
+   * milestone M5.
    */
   readonly addressable?: boolean;
-  /**
-   * Higher numbers survive longer when the host is too small for all
-   * bands. Default 0.
-   */
-  readonly priority?: number;
 }
 
 /**
@@ -48,8 +44,17 @@ export type BandOverride = Partial<
   Pick<BandSpec, 'offset' | 'width' | 'value' | 'opacity' | 'motion'>
 >;
 
-/** A named parameter set: overrides per band `id`. */
-export type StateSpec = Readonly<Record<string, BandOverride>>;
+/** A named parameter set. */
+export interface StateSpec {
+  /** Overrides per band `id`. Bands not named stay as in idle. */
+  readonly bands: Readonly<Record<string, BandOverride>>;
+  /**
+   * Approximate seconds a change into this state takes. For `enter` it
+   * is the time of the draw-on, the change from `enter` to idle. Default:
+   * the spec's `settle`.
+   */
+  readonly settle?: number;
+}
 
 /** Everything `attach` will accept for one host. */
 export interface HudSpec {
@@ -68,6 +73,9 @@ export interface HudSpec {
    * that two hosts with the same spec can still differ. Default 0.
    */
   readonly seed?: number;
-  /** Approximate seconds a state change takes to settle. Default 0.3. */
+  /**
+   * Approximate seconds a state change takes, for states that do not
+   * say, and for the return to idle. Default 0.3.
+   */
   readonly settle?: number;
 }

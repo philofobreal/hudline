@@ -93,8 +93,7 @@ test('an enter state draws bands on from it', () => {
   const spec: HudSpec = {
     shape: { kind: 'ring' },
     bands: [{ id: 'line', width: 2 }],
-    states: { enter: { line: { value: 0 } } },
-    settle: 1,
+    states: { enter: { bands: { line: { value: 0 } }, settle: 1 } },
   };
   const player = createPlayer(spec, 100, 100);
   assert.equal(player.scene(0).layers.length, 0);
@@ -105,7 +104,11 @@ test('an enter state draws bands on from it', () => {
 });
 
 test('states glide, can be interrupted, and unknown names mean idle', () => {
-  const spec: HudSpec = { ...ring, states: { hover: { segments: { width: 12 } } }, settle: 0.5 };
+  const spec: HudSpec = {
+    ...ring,
+    states: { hover: { bands: { segments: { width: 12 } }, settle: 0.5 } },
+    settle: 0.5,
+  };
   const player = createPlayer(spec, 100, 100);
   const width = (time: number) => player.scene(time).layers[1]?.width as number;
   assert.equal(width(1), 8);
@@ -139,6 +142,6 @@ test('nothing drawable gives an empty document instead of an error', () => {
   const empty = /^<svg [^>]*><\/svg>$/;
   assert.match(renderToString(ring, 0, 0), empty);
   assert.match(renderToString(ring, Number.NaN, 50), empty);
-  assert.match(renderToString({ shape: { kind: 'frame' }, bands: [{ width: 1 }] }, 100, 100), empty);
+  assert.match(renderToString({ shape: { kind: 'frame', inset: 60 }, bands: [{ width: 1 }] }, 100, 100), empty);
   assert.match(renderToString({ shape: { kind: 'ring' }, bands: [{ width: -1 }] }, 100, 100), empty);
 });

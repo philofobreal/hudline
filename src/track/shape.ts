@@ -16,8 +16,9 @@ export type Corner = 'tl' | 'tr' | 'br' | 'bl';
 export type Edge = 'top' | 'right' | 'bottom' | 'left';
 
 /**
- * How a frame corner is shaped. Sizes are fixed pixels; when two corners
- * on one edge do not fit, the track shrinks both in proportion.
+ * How a frame corner is shaped. Sizes are fixed pixels; when the two
+ * corners of an edge ask for more than the edge has, both shrink by the
+ * same factor.
  */
 export type CornerOp =
   | { readonly kind: 'sharp' }
@@ -48,8 +49,10 @@ export type Along =
 export interface StepOp {
   readonly kind: 'step';
   /**
-   * Name of the anchor this step publishes. Patterns can refer to it to
-   * place spans on the step. Must not collide with a corner name.
+   * Name of the anchor this step publishes: its displaced flat part,
+   * without the ramps. Patterns can refer to it to place spans on the
+   * step. A name that is also a corner name (`tl`, `tr`, `br`, `bl`)
+   * replaces that corner's anchor.
    */
   readonly id?: string;
   readonly from: Along;
@@ -59,8 +62,11 @@ export interface StepOp {
   /** How the edge reaches the displaced level. Default `'diagonal'` (45°). */
   readonly ramp?: 'diagonal' | 'square';
   /**
-   * Higher numbers survive longer when the edge is too short for all of
-   * its steps. Default 0. Ties drop in reverse order of declaration.
+   * Higher numbers are placed first when the edge is too short for all
+   * of its steps, or when steps would overlap. Default 0. Among equals,
+   * the one declared earlier is placed first. A step needs room for both
+   * ramps and at least a pixel of flat part within the edge's straight
+   * run, or it is left out.
    */
   readonly priority?: number;
 }

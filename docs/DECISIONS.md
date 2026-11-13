@@ -145,25 +145,50 @@ Why: It is how milestone M1's output is produced and inspected, and it serves se
 Rejected: Keeping it internal and rendering the gallery through a private import.
 
 ## D-023 Travel is a dash offset; a travelling pattern is cyclic
-2026-11-13 · Status: proposed
+2026-11-13 · Status: accepted (delegated by the maintainer, as D-011)
 Decision: A pattern's travel is expressed by the surface as a dash offset on a dash array as long as the band. A band whose pattern travels is laid out cyclically even on an open track: what leaves at the end comes back in at the start. `PatternContext.closed` became `cyclic`.
 Why: One mechanism for rings and open arcs, no pattern recompilation per frame, and no seam on a moving open band. Replaces the earlier idea of rotating rings with a transform.
 Rejected: Transform rotation (rings only); recompiling the pattern with a phase every frame (allocates in the frame path).
 
 ## D-024 Value is a portion of the track
-2026-11-13 · Status: proposed
+2026-11-13 · Status: accepted (delegated by the maintainer, as D-011)
 Decision: `value` shortens the drawn path (`track.portion`) instead of clipping the pattern. `pattern.reveal`, added in M1, is removed.
 Why: A pattern can travel under a fixed reveal only if the two are independent; clipping the intervals made them move together.
 Rejected: Clipping intervals (wrong once the pattern moves); a mask element per band.
 
 ## D-025 States as overrides, `enter` for draw-on, motion replaced not merged
-2026-11-13 · Status: proposed
+2026-11-13 · Status: accepted (delegated by the maintainer, as D-011)
 Decision: A state overrides band parameters by band `id`. Numbers glide on a critically damped spring and stay continuous in value and speed when interrupted. A state's `motion` replaces the band's motion; travel so far is kept, so the pattern never jumps. If `enter` is defined, bands start in it and move to idle.
 Why: One mechanism covers hover, alert, progress changes and draw-on. Critical damping settles fastest without overshoot.
 Rejected: A separate draw-on option; merging motion objects (ambiguous when a state wants to stop one effect).
 
 ## D-026 A headless player is public
-2026-11-13 · Status: proposed
+2026-11-13 · Status: accepted (delegated by the maintainer, as D-011)
 Decision: `createPlayer(spec, width, height)` is exported. It has `set(state, time)`, `resize`, `scene(time)` and `markup(time)`; the caller supplies the time.
 Why: It is the engine `attach` will drive in M4, the natural entry for the later canvas renderer, and what makes motion testable and reproducible.
 Rejected: Keeping it private and exposing only `attach` (canvas users and tests would have no entry point).
+
+## D-027 Settle time per state
+2026-11-13 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: A state is `{ bands, settle? }`. `settle` is the time of the change into that state; for `enter`, the time of the draw-on. The spec's `settle` is the default and the time of the return to idle.
+Why: Draw-on reads better slower than a hover change, and one time for both served neither.
+Rejected: A map of times beside the states (two places to keep in step); keeping one time.
+
+## D-028 Frame geometry
+2026-11-13 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: A frame travels clockwise and starts in the middle of the first straight run of its top edge. Corners that do not fit an edge shrink together. A step needs both ramps and a pixel of flat part within the edge's straight run or it is left out; among overlapping steps priority decides. A step's anchor is its flat part, without the ramps.
+Why: A dash that crosses the seam is drawn as two, and two dash ends do not make a corner, so the seam must not lie on one. The flat part is what authors decorate; ramps are reachable by widening the span.
+Rejected: Starting at the top-left corner (broken corner bracket there); anchoring the whole step (every fill had to trim the ramps by a length that depends on the depth).
+
+## D-029 Parallel tracks drop what they consume
+2026-11-13 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `offset` shifts every piece and joins neighbours where they now meet. A line the offset consumes is removed and its neighbours joined; a fillet whose radius reaches zero becomes a sharp corner; the track is empty only when the shape itself is consumed. Anchors follow pieces by identity and shrink to a point when their pieces are gone.
+Why: Without this, a band a little deeper than a chamfer is long would fold over itself or vanish entirely.
+Rejected: Returning an empty track on any collapse (bands disappear for no visible reason); a full straight-skeleton algorithm (far more than these shapes need).
+Known limit: a line next to a fillet that is consumed empties the track.
+
+## D-030 Whether a band fits is a geometry question; band priority removed
+2026-11-13 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `track.holds(track, from, to)` says whether a band reads as a strip on a shape: its inner edge must exist, and on shapes made of arcs alone must not curve tighter than the band is wide. `BandSpec.priority` is removed.
+Why: The ring rule of D-021 hid thin fills on low frames, where it does not apply. Band priority was accepted by the type and read by nothing, and it has no clear meaning while bands do not move to fill the room of dropped ones.
+Rejected: Keeping one rule for all shapes in `mount`; keeping an unused field.

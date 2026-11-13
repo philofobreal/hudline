@@ -13,12 +13,14 @@ Use these terms in code, comments and docs. Do not introduce synonyms.
 | Corner operator | sarokoperátor | Rule that shapes a corner: chamfer, fillet |
 | Edge operator | éloperátor | Rule that shapes an edge. One exists: step |
 | Step | lépcső | Displaced stretch of an edge; negative depth makes a tab, a short positive one a notch |
-| Anchor | horgony | Named interval on a track: a frame corner or a step with an id |
+| Anchor | horgony | Named interval on a track: a frame corner, or the flat part of a step with an id |
 | Span | fesztáv | Pattern interval tied to an anchor |
 | Intervals | intervallumok | Pattern of explicit stretches given as fractions of the length |
 | Detail | részlet | A fixed-size feature produced by an operator, or a tick |
-| Priority | prioritás | Order in which details drop when space is short |
-| Budget | költségvetés | Edge length available for details |
+| Priority | prioritás | Which of two overlapping steps on an edge is placed |
+| Straight run | egyenes szakasz | The part of an edge between its two corners, where steps can be placed |
+| Seam | varrat | Where a closed track starts and ends |
+| Settle | beállási idő | Approximate seconds a change into a state takes |
 | Ring | gyűrű | A shape whose track is a circle |
 | Arc | ívszegmens | An open circular track between two angles |
 | Frame | keret | A shape whose track is a closed polygon with operators |

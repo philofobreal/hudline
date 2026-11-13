@@ -89,7 +89,3 @@ test('a portion of everything is the track, of nothing an empty track', () => {
   assert.equal(portion(ring, -1).path, '');
   assert.equal(portion(offset(portion(ring, 0.5), 10), 0.5).closed, false);
 });
-
-test('frames resolve to an empty track until they are implemented', () => {
-  assert.equal(resolve({ kind: 'frame' }, 100, 100).length, 0);
-});

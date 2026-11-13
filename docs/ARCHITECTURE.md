@@ -18,7 +18,7 @@ A ring is a track that is a circle. A frame is a track that is a closed polygon 
 
 | Module | Hides | Interface (planned) |
 |---|---|---|
-| `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track`, `portion(track, share) → Track` |
+| `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track`, `portion(track, share) → Track`, `holds(track, from, to) → boolean` |
 | `pattern` | Layout of each pattern kind, seam fitting, thinning on short bands, wrapping and merging of intervals | `compile(spec, context) → Dashes` |
 | `motion` | Springs, noise, how travel accumulates across changes of speed, seeded randomness | `begin(target) → BandState`, `steer(state, target, time, settle) → BandState`, `sample(state, length, closed, time, out)` |
 | `surface` | How bands become SVG elements and dash arrays; later live DOM updates and canvas drawing | `svgMarkup(scene) → string` |
@@ -55,10 +55,10 @@ Each module owns the part of the spec language that describes its own decisions,
 
 ### Public API
 
-Available now, without a DOM (rings and arcs):
+Available now, without a DOM:
 
 ```ts
-renderToString(spec, width, height);          // standalone SVG at rest
+renderToString(spec, width, height);          // standalone SVG at rest; rings, arcs and frames
 const player = createPlayer(spec, width, height);
 player.set('alert', time);                    // the caller supplies the time
 player.markup(time);                          // SVG at that moment
@@ -92,15 +92,18 @@ One shared `requestAnimationFrame` loop serves all elements.
 - **Angles:** 0° points up and angles grow clockwise. Closed tracks travel clockwise.
 - **Edge positions:** measured in reading direction (left to right, top to bottom), whatever the track's direction of travel.
 - **Band placement:** a band covers `offset` to `offset + width` from the track, toward the inside. Bands with equal offsets share their outer edge.
-- **Anchors:** `track` publishes named intervals on the track: the frame corners `tl`, `tr`, `br`, `bl` and every step that has an `id`. Span patterns refer to them by name; a span on a missing anchor draws nothing.
+- **Anchors:** `track` publishes named intervals on the track: the frame corners `tl`, `tr`, `br`, `bl` (a sharp corner has zero length) and the flat part of every step that has an `id`. Span patterns refer to them by name; a span on a missing anchor draws nothing. Anchors follow their pieces onto parallel tracks.
+- **Seam:** a ring starts at the top, a frame in the middle of the first straight run of its top edge, so the seam never lies on a corner.
 - **One edge operator:** `step` displaces a stretch of an edge. A tab is a step with negative depth, a notch a short step with positive depth.
 - **Value:** a band's `value` (0–1) shows that share of the band from the track's start, by shortening the drawn path. The pattern is laid out for the whole band, so it can travel under a fixed value. Progress and draw-on are the same parameter.
 - **Travel:** a pattern's travel is a dash offset on a dash array as long as the band. A travelling pattern is laid out cyclically, also on an open band: what leaves at the end comes back in at the start.
-- **Transitions:** numeric band parameters move on a critically damped spring and stay continuous in value and speed when retargeted. A state's `motion` replaces the band's motion; travel so far is kept.
+- **Transitions:** each state has its own settle time. Numeric band parameters move on a critically damped spring and stay continuous in value and speed when retargeted. A state's `motion` replaces the band's motion; travel so far is kept.
 - **Primitives:** line and circular arc. The offset of a line is a line; the offset of an arc is a concentric arc. Lengths are closed-form.
 - **Seamless patterns:** on a closed track the period is fitted to the length, `p' = L / round(L / p)`.
-- **Detail budget:** each edge has a budget (length minus corners). Details are placed by priority and dropped when they do not fit, with hysteresis so that a size near the threshold does not flicker.
-- **Band limit:** a band is left out when less than its own width would remain between its inner edge and the centre it bends around. Closer than that it stops reading as a strip.
+- **Corner fit:** when the two corners of an edge ask for more than the edge has, both shrink by the same factor.
+- **Step placement:** a step is placed if both ramps and a pixel of flat part fit within the edge's straight run and it overlaps no step placed before it. Higher priority is placed first. Hysteresis at the threshold is not implemented yet (see the roadmap).
+- **Parallel tracks:** an offset shifts every piece and joins neighbours where they meet. What the offset consumes is dropped: a short line disappears and its neighbours join, a fillet turns sharp. The track is empty only when the shape itself is consumed.
+- **Band fit:** a band is left out when its inner edge would pass through the shape, and on a shape made of arcs alone when its inner edge would curve tighter than the band is wide. `track.holds` decides.
 - **Rings:** the radius comes from the host's smaller side; band offsets and widths are fixed pixels. Tick, dot and segment counts drop to the largest that fits; ticks can drop in multiples of a number so that a coarser band stays aligned.
 - **Seeded blocks:** on a closed band the row starts at a seeded position, so several block bands on one ring do not all begin at the same angle.
 

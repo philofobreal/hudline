@@ -1,5 +1,5 @@
 // Writes gallery.html: every catalogue entry that can be rendered today,
-// at three sizes, playing. Self-contained: the library is inlined, so the
+// at several sizes, playing. Self-contained: the library is inlined, so the
 // file works opened straight from disk. For looking at, not for tests.
 // Run with `npm run gallery`.
 
@@ -11,23 +11,34 @@ import { bundle } from './bundle.mjs';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const library = bundle(join(root, 'dist', 'index.js'), 'hudline');
 
-const SIZES = [48, 96, 200];
-const NAMES = {
-  R1: 'Segmented ring',
-  R2: 'Scale ring',
-  R3: 'Irregular block ring',
-  R4: 'Value arc',
+const RINGS = { R1: 'Segmented ring', R2: 'Scale ring', R3: 'Irregular block ring', R4: 'Value arc' };
+const FRAMES = {
+  F1: 'Chamfered frame',
+  F2: 'Tabbed frame',
+  F3: 'Stepped frame',
+  F4: 'Double frame',
+  F5: 'Corner brackets',
 };
+const RING_SIZES = [48, 96, 200].map((size) => [size, size]);
+const FRAME_SIZES = [
+  [96, 44],
+  [180, 90],
+  [300, 150],
+];
 
-const rows = Object.entries(NAMES)
-  .map(([id, name]) => {
-    const cells = SIZES.map(
-      (size) =>
-        `<figure><div class="hud" data-id="${id}" data-size="${size}" style="width:${size}px;height:${size}px"></div><figcaption>${size} px</figcaption></figure>`,
-    ).join('');
-    return `<section><h2>${id} · ${name}</h2><div class="row">${cells}</div></section>`;
-  })
-  .join('\n');
+const cell = (id, [width, height], resizable = false) =>
+  `<figure><div class="hud${resizable ? ' resizable' : ''}" data-id="${id}" style="width:${width}px;height:${height}px"></div>` +
+  `<figcaption>${resizable ? 'drag the corner' : `${width} × ${height}`}</figcaption></figure>`;
+
+const section = (names, sizes, resizable) =>
+  Object.entries(names)
+    .map(([id, name]) => {
+      const cells = sizes.map((size) => cell(id, size)).join('') + (resizable ? cell(id, [240, 120], true) : '');
+      return `<section><h2>${id} · ${name}</h2><div class="row">${cells}</div></section>`;
+    })
+    .join('\n');
+
+const rows = `${section(FRAMES, FRAME_SIZES, true)}\n${section(RINGS, RING_SIZES, false)}`;
 
 // The page script: a plain demo loop that asks each player for markup
 // once per frame. The library's own DOM binding (milestone M4) will
@@ -36,13 +47,14 @@ const page = `
 const players = [];
 let started = performance.now();
 const now = () => (performance.now() - started) / 1000;
+const sizeOf = (host) => [host.clientWidth, host.clientHeight];
 
 function build() {
   players.length = 0;
   started = performance.now();
   for (const host of document.querySelectorAll('.hud')) {
-    const size = Number(host.dataset.size);
-    players.push({ host, player: hudline.createPlayer(hudline.catalog[host.dataset.id], size, size) });
+    const [width, height] = sizeOf(host);
+    players.push({ host, player: hudline.createPlayer(hudline.catalog[host.dataset.id], width, height) });
   }
 }
 
@@ -59,13 +71,23 @@ for (const button of document.querySelectorAll('[data-state]')) {
 }
 document.querySelector('[data-replay]').addEventListener('click', () => { build(); setState('idle'); });
 
+// The resizable hosts tell their player about every new size.
+const resizes = new ResizeObserver((entries) => {
+  for (const entry of entries) {
+    const found = players.find(({ host }) => host === entry.target);
+    if (found) found.player.resize(...sizeOf(entry.target));
+  }
+  if (still.matches) draw();
+});
+for (const host of document.querySelectorAll('.hud.resizable')) resizes.observe(host);
+
 const still = matchMedia('(prefers-reduced-motion: reduce)');
 function draw() {
-  // With reduced motion the rings are shown settled and at rest.
+  // With reduced motion everything is shown settled and at rest.
   const time = still.matches ? 0 : now();
   for (const { host, player } of players) {
     host.innerHTML = still.matches
-      ? hudline.renderToString(hudline.catalog[host.dataset.id], Number(host.dataset.size), Number(host.dataset.size))
+      ? hudline.renderToString(hudline.catalog[host.dataset.id], ...sizeOf(host))
       : player.markup(time);
   }
   if (!still.matches) requestAnimationFrame(draw);
@@ -100,9 +122,11 @@ const html = `<!doctype html>
   figure { margin: 0; display: grid; justify-items: center; gap: 8px; }
   figcaption { color: var(--muted); font-size: 11px; }
   svg { display: block; }
+  .hud { position: relative; }
+  .hud.resizable { resize: both; overflow: hidden; min-width: 16px; min-height: 16px; max-width: 100%; }
 </style>
-<h1>hudline · catalogue rings</h1>
-<p>Milestone M2: motion and states. Every ring draws on when the page opens. The buttons put all rings into a state; each ring reacts in its own way. Frames arrive in M3.</p>
+<h1>hudline · catalogue</h1>
+<p>Milestone M3: frames join the rings. Everything draws on when the page opens. The buttons put every shape into a state; each reacts in its own way. The last frame of each row can be resized by its bottom-right corner: details keep their pixel sizes and drop out when they no longer fit.</p>
 <div class="bar">
   <button type="button" data-state="idle" aria-pressed="true">idle</button>
   <button type="button" data-state="hover" aria-pressed="false">hover</button>

@@ -4,7 +4,7 @@ import { compile } from '../pattern/index.js';
 import type { Dashes } from '../pattern/index.js';
 import { svgMarkup } from '../surface/index.js';
 import type { Layer, Scene } from '../surface/index.js';
-import { offset, portion, resolve } from '../track/index.js';
+import { holds, offset, portion, resolve } from '../track/index.js';
 import type { Track } from '../track/index.js';
 import type { BandSpec, HudSpec } from './spec.js';
 
@@ -56,7 +56,8 @@ const NO_DASHES: Dashes = { intervals: [], cap: 'butt' };
  * @param still Start at rest in idle even if `enter` is defined.
  */
 export function createPlayer(spec: HudSpec, width: number, height: number, still = false): Player {
-  const settle = finiteOr(spec.settle, DEFAULT_SETTLE);
+  const settleIdle = finiteOr(spec.settle, DEFAULT_SETTLE);
+  const settleInto = (state: string) => finiteOr(spec.states?.[state]?.settle, settleIdle);
   const hostSeed = finiteOr(spec.seed, 0);
   const random = (seed: number) => createRandom(mixSeeds(seed, hostSeed));
   const enters = !still && spec.states?.['enter'] !== undefined;
@@ -70,7 +71,7 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
     return {
       spec: band,
       idle,
-      state: enters ? steer(begin(start), idle, 0, settle) : begin(idle),
+      state: enters ? steer(begin(start), idle, 0, settleInto('enter')) : begin(idle),
       frame: { offset: 0, width: 0, value: 0, opacity: 0, phase: 0 },
       centreAt: Number.NaN,
       centre: NO_TRACK,
@@ -88,10 +89,8 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
       // sample with, and exact whenever the band is not changing shape.
       const frame = sample(band.state, band.centre.length, band.centre.closed, time, band.frame);
       if (!(frame.width > 0)) continue;
-      // Room for one more band width must remain inside the band. Closer
-      // to the centre than that, a band stops reading as a strip and
-      // clots into a blob.
-      if (offset(base, frame.offset + frame.width * 2).length <= 0) continue;
+      // A host too small for this band: leave the band out.
+      if (!holds(base, frame.offset, frame.offset + frame.width)) continue;
 
       const centreAt = frame.offset + frame.width / 2;
       if (centreAt !== band.centreAt) {
@@ -129,6 +128,7 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
 
   return {
     set(state, time) {
+      const settle = settleInto(state);
       for (const band of bands) {
         band.state = steer(band.state, targetIn(spec, band.spec, band.idle, state), time, settle);
       }
@@ -168,7 +168,7 @@ function targetOf(band: BandSpec): BandTarget {
 
 /** A band's target in a named state: idle with that state's overrides. */
 function targetIn(spec: HudSpec, band: BandSpec, idle: BandTarget, state: string): BandTarget {
-  const override = band.id === undefined ? undefined : spec.states?.[state]?.[band.id];
+  const override = band.id === undefined ? undefined : spec.states?.[state]?.bands[band.id];
   if (override === undefined) return idle;
   return {
     offset: finiteOr(override.offset, idle.offset),

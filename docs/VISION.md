@@ -8,7 +8,7 @@ A general way to give existing DOM elements the look of film and game HUDs: clea
 
 - **Geometric, not drawn.** Shapes come from parameters and rules, never from hand-made path strings.
 - **Shape-preserving motion.** Animation travels along edges, corners and arcs.
-- **Responsive by rule.** Details (tabs, chamfers, notches, ticks) keep fixed pixel sizes; straight runs stretch; when space runs out, details drop by priority.
+- **Responsive by rule.** Details (tabs, chamfers, notches, ticks) keep fixed pixel sizes; straight runs stretch; when space runs out, details that no longer fit drop out.
 - **Monochrome first.** One colour per state, taken from `currentColor`.
 - **Quiet in the page.** The library never changes the host's layout.
 
