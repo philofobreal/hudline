@@ -42,6 +42,7 @@ npm install
 npm run check
 npm run gallery   # writes a self-contained, animated gallery.html
 npm run perf      # writes perf.html: 50 drawings with a frame timer
+npm run selftest  # writes selftest.html: checks the DOM binding in a real browser
 ```
 
 Requires Node 22 or newer.

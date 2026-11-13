@@ -1,0 +1,205 @@
+// Writes selftest.html: the DOM binding exercised in a real browser with
+// real events, real observers and real layout. The unit tests run against
+// a stand-in DOM; this page is the check that the stand-in tells the
+// truth. Open it in a browser and read the list, or run it headless and
+// read the console. Run with `npm run selftest`.
+
+import { writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { bundle } from './bundle.mjs';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const library = bundle(join(root, 'dist', 'index.js'), 'hudline');
+
+const page = `
+const { attach, catalog } = hudline;
+const results = [];
+const check = (name, ok, detail = '') => results.push({ name, ok: Boolean(ok), detail: String(detail) });
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const frames = (count) => new Promise((resolve) => {
+  const step = () => (count-- > 0 ? requestAnimationFrame(step) : resolve());
+  step();
+});
+const stage = document.querySelector('#stage');
+function host(width, height, extra = '') {
+  const element = stage.appendChild(document.createElement('div'));
+  element.style.cssText = 'width:' + width + 'px;height:' + height + 'px;' + extra;
+  return element;
+}
+const paths = (element) => [...element.querySelectorAll(':scope > svg > path')];
+const shown = (path) => path.getAttribute('display') !== 'none';
+/** Counts attribute writes to an element's drawing over a stretch of time. */
+async function writesDuring(element, ms) {
+  let count = 0;
+  const observer = new MutationObserver((records) => (count += records.length));
+  observer.observe(element, { attributes: true, subtree: true });
+  await wait(ms);
+  observer.disconnect();
+  return count;
+}
+
+async function run() {
+  // 1. Attaching.
+  const frame = host(200, 100);
+  const hud = attach(frame, catalog.F4);
+  check('draws at once as one svg child', frame.children.length === 1 && frame.firstElementChild.localName === 'svg');
+  check('a static host becomes relative', getComputedStyle(frame).position === 'relative');
+  check('the svg covers the host and lets the pointer through', (() => {
+    const box = frame.firstElementChild.getBoundingClientRect();
+    return box.width === 200 && box.height === 100 && getComputedStyle(frame.firstElementChild).pointerEvents === 'none';
+  })());
+  check('insets are published', frame.style.getPropertyValue('--hud-inset-top').endsWith('px'), frame.style.getPropertyValue('--hud-inset-top'));
+  check('attaching again keeps one drawing and one handle', attach(frame, catalog.F4) === hud && frame.querySelectorAll('svg').length === 1);
+
+  // 2. Draw-on runs and ends.
+  await wait(2200);
+  check('the loop stops once the draw-on has settled', (await writesDuring(frame, 300)) === 0);
+
+  // 3. Real pointer events.
+  const accents = () => paths(frame)[2].getAttribute('stroke-width');
+  check('idle accent width', accents() === '3', accents());
+  frame.dispatchEvent(new PointerEvent('pointerenter'));
+  await wait(900);
+  check('pointerenter enters hover', accents() === '5', accents());
+  frame.dispatchEvent(new PointerEvent('pointerleave'));
+  await wait(900);
+  check('pointerleave returns to idle', accents() === '3', accents());
+
+  // 4. A requested state holds against the pointer.
+  hud.set('alert');
+  frame.dispatchEvent(new PointerEvent('pointerenter'));
+  await wait(900);
+  check('alert is shown and keeps flickering', (await writesDuring(frame, 300)) > 0);
+  hud.set('idle');
+  frame.dispatchEvent(new PointerEvent('pointerleave'));
+  await wait(900);
+
+  // 5. Real resizing through the ResizeObserver.
+  const before = paths(frame)[0].getAttribute('d');
+  frame.style.width = '320px';
+  await frames(4);
+  const after = paths(frame)[0].getAttribute('d');
+  // Inset 1 and a band 1 wide: the centreline runs 1.5 inside the right edge.
+  check('the outline follows the host size', after !== before && after.includes('318.5'), after);
+
+  // 6. Details drop out and come back with room to spare.
+  const tabbed = host(260, 90);
+  attach(tabbed, catalog.F2);
+  await wait(2200);
+  const fill = () => shown(paths(tabbed)[1]);
+  check('the tab is filled when it fits', fill());
+  tabbed.style.width = '120px';
+  await frames(4);
+  check('the fill goes when the tab no longer fits', !fill());
+  tabbed.style.width = '260px';
+  await frames(4);
+  check('the fill comes back', fill());
+
+  // 7. A band asked to grow past what a small ring holds stays visible.
+  const small = host(48, 48);
+  const smallHud = attach(small, catalog.R1);
+  await wait(2200);
+  small.dispatchEvent(new PointerEvent('pointerenter'));
+  await wait(900);
+  const segments = paths(small)[1];
+  check('hover on the smallest ring keeps its segments', shown(segments) && Number(segments.getAttribute('stroke-width')) > 8, segments.getAttribute('stroke-width'));
+  small.dispatchEvent(new PointerEvent('pointerleave'));
+  smallHud.detach();
+
+  // 8. Focus, on a spec that defines it.
+  const button = stage.appendChild(document.createElement('button'));
+  button.textContent = 'focus me';
+  button.style.cssText = 'width:140px;height:40px;background:none;color:inherit;border:0';
+  attach(button, {
+    shape: { kind: 'frame', corners: { kind: 'chamfer', size: 6 } },
+    bands: [{ id: 'line', width: 1 }],
+    states: { focus: { bands: { line: { width: 3 } }, settle: 0.1 }, active: { bands: { line: { width: 5 } }, settle: 0.1 } },
+    settle: 0.1,
+  });
+  const line = () => paths(button)[0].getAttribute('stroke-width');
+  button.focus();
+  await wait(500);
+  check('focus enters the focus state', line() === '3', line());
+  button.dispatchEvent(new PointerEvent('pointerdown'));
+  await wait(500);
+  check('pointerdown enters active over focus', line() === '5', line());
+  button.dispatchEvent(new PointerEvent('pointerup'));
+  button.blur();
+  await wait(500);
+  check('blur returns to idle', line() === '1', line());
+  check('the button still works as a button', button.textContent === 'focus me' && button.querySelector('svg') !== null);
+
+  // 9. A value kept up to date.
+  const gauge = host(120, 120);
+  const gaugeHud = attach(gauge, catalog.R4);
+  await wait(2200);
+  const partial = paths(gauge)[1].getAttribute('d');
+  gaugeHud.update({ value: { value: 1 } });
+  await wait(900);
+  const full = paths(gauge)[1].getAttribute('d');
+  // A full 270° arc from lower left ends at lower right.
+  check('update moves the value', full !== partial && full.endsWith('97.477 97.477'), partial + ' -> ' + full);
+
+  // 10. Out of sight, nothing is written.
+  const far = host(100, 100, 'margin-top:3000px');
+  attach(far, catalog.R3);
+  await wait(600);
+  check('a spinning ring out of view writes nothing', (await writesDuring(far, 400)) === 0);
+  far.scrollIntoView();
+  await wait(300);
+  check('and animates once it is in view', (await writesDuring(far, 400)) > 0);
+  window.scrollTo(0, 0);
+
+  // 11. Leaving.
+  far.remove();
+  await wait(300);
+  check('a host removed from the document loses its drawing', far.querySelector('svg') === null);
+  hud.detach();
+  check('detach removes the svg', frame.querySelector('svg') === null);
+  check('detach restores position and insets', frame.style.position === '' && frame.style.getPropertyValue('--hud-inset-top') === '');
+  hud.detach();
+  hud.set('alert');
+
+  // 12. Elements that cannot hold a drawing.
+  const image = stage.appendChild(document.createElement('img'));
+  attach(image, catalog.F1).set('alert');
+  check('an img is left alone', image.children.length === 0 && image.style.position === '');
+}
+
+run()
+  .catch((error) => check('the run itself', false, error && error.stack))
+  .finally(() => {
+    const failed = results.filter((result) => !result.ok);
+    const summary = 'SELFTEST ' + (results.length - failed.length) + '/' + results.length + ' passed';
+    document.querySelector('#summary').textContent = summary;
+    document.querySelector('#list').innerHTML = results
+      .map((result) => '<li class="' + (result.ok ? 'ok' : 'bad') + '">' + (result.ok ? 'ok   ' : 'FAIL ') + result.name + (result.ok ? '' : ' — ' + result.detail) + '</li>')
+      .join('');
+    console.log(summary);
+    for (const result of failed) console.log('SELFTEST FAIL ' + result.name + ' :: ' + result.detail);
+  });
+`;
+
+const html = `<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>hudline · browser self-test</title>
+<style>
+  body { margin: 16px; background: #0a1017; color: #7fe3ff; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+  #stage { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; margin-top: 16px; }
+  ul { list-style: none; padding: 0; white-space: pre; }
+  .bad { color: #ff8a7a; }
+</style>
+<strong id="summary">running, about 20 seconds…</strong>
+<ul id="list"></ul>
+<div id="stage"></div>
+<script>
+${library}
+${page}
+</script>
+</html>
+`;
+
+writeFileSync(join(root, 'selftest.html'), html);
+console.log('selftest: wrote selftest.html');

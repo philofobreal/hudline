@@ -91,9 +91,12 @@ npm test           # build, then node --test
 npm run check      # typecheck + rules + test
 npm run gallery    # build, then write a self-contained gallery.html (not committed)
 npm run perf       # build, then write perf.html: 50 drawings, timed (not committed)
+npm run selftest   # build, then write selftest.html: the DOM binding in a real browser
 ```
 
-Anything that changes what is drawn is not done until you have looked at the rendered gallery yourself. Tests prove numbers, not appearance.
+Anything that changes what is drawn is not done until you have looked at the rendered gallery yourself, in every state and at the smallest size as well as the largest. Tests prove numbers, not appearance.
+
+Anything that touches `mount` or `surface` is not done until `selftest.html` passes in a real browser. The unit tests for the DOM binding run against a stand-in that can hide what a browser does differently.
 
 `npm run rules` checks only what a script can check. Passing it does not prove the other invariants hold. When a rule changes in this file, change `scripts/check-rules.mjs` in the same commit.
 

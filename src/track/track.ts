@@ -203,6 +203,26 @@ export function holds(track: Track, from: number, to: number, spare = 0): boolea
 }
 
 /**
+ * The widest a band starting `from` pixels inward may be and still read
+ * as a strip (see {@link holds}), up to the `wanted` width.
+ *
+ * @returns `wanted` when that holds, otherwise the largest width that
+ *   does, to within a quarter pixel; 0 when no width holds.
+ */
+export function widest(track: Track, from: number, wanted: number): number {
+  if (!(wanted > 0)) return 0;
+  if (holds(track, from, from + wanted)) return wanted;
+  let fits = 0;
+  let tooWide = wanted;
+  while (tooWide - fits > 0.25) {
+    const middle = (fits + tooWide) / 2;
+    if (holds(track, from, from + middle)) fits = middle;
+    else tooWide = middle;
+  }
+  return fits;
+}
+
+/**
  * How far from each side of the host box content must stay to be clear
  * of a shape whose bands reach `depth` pixels inward from its track.
  *

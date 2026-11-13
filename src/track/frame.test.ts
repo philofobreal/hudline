@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { FrameShape, StepOp } from './shape.js';
-import { clearance, holds, offset, portion, resolve } from './track.js';
+import { clearance, holds, offset, portion, resolve, widest } from './track.js';
 
 const near = (actual: number, expected: number, tolerance = 1e-6) =>
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} ≉ ${expected}`);
@@ -236,6 +236,20 @@ test('a band that is not shown needs room to spare before it is held', () => {
   assert.equal(holds(ring, 20, 34), true);
   assert.equal(holds(ring, 20, 34, 4), false);
   assert.equal(holds(ring, 20, 30, 4), true);
+});
+
+test('widest gives the wanted width where it holds and the most that holds elsewhere', () => {
+  const ring = resolve({ kind: 'ring' }, 100, 100);
+  assert.equal(widest(ring, 10, 8), 8);
+  // From offset 10 the inner edge stays wider than the band up to a width of 20.
+  const most = widest(ring, 10, 35);
+  assert.ok(most > 19.5 && most < 20, `got ${most}`);
+  assert.equal(widest(ring, 49.9, 5) < 0.25, true);
+  assert.equal(widest(ring, 10, 0), 0);
+  assert.equal(widest(ring, 10, Number.NaN), 0);
+  const box = resolve(frame(), 200, 40);
+  const through = widest(box, 0, 60);
+  assert.ok(through > 19.5 && through < 20, `got ${through}`);
 });
 
 test('clearance keeps content clear of bands, steps and corners', () => {

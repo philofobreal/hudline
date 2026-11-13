@@ -24,7 +24,7 @@ Work happens only in the milestone marked **current**. Durations assume one expe
 
 ## Largest risk
 
-Nothing so far has been tried by hand in a real page by anyone but the agent, and only Chrome has been used. Pointer, focus and resize behaviour are covered by tests against a stand-in DOM, which proves the logic and nothing about how it feels.
+Only Chrome has been used. `npm run selftest` exercises pointer, focus, resizing, visibility and removal with real events in a real browser, and passes there; it says nothing about Firefox or Safari, and nothing about how the motion feels. The maintainer has tried the gallery by hand and found one defect that the agent's own checks had missed (D-036): states were looked at in large sizes only. Anything that changes what is drawn must be looked at in every state at the smallest size too.
 
 ## Parity note
 

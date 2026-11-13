@@ -18,7 +18,7 @@ A ring is a track that is a circle. A frame is a track that is a closed polygon 
 
 | Module | Hides | Interface (planned) |
 |---|---|---|
-| `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track`, `portion(track, share) → Track`, `holds(track, from, to) → boolean`, `clearance(track, depth) → Insets` |
+| `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track`, `portion(track, share) → Track`, `holds(track, from, to) → boolean`, `widest(track, from, wanted) → number`, `clearance(track, depth) → Insets` |
 | `pattern` | Layout of each pattern kind, seam fitting, thinning on short bands, wrapping and merging of intervals | `compile(spec, context) → Dashes` |
 | `motion` | Springs, noise, how travel accumulates across changes of speed, seeded randomness | `begin(target) → BandState`, `steer(state, target, time, settle) → BandState`, `sample(state, length, closed, time, out)`, `moving(state, closed, time)` |
 | `surface` | How bands become SVG elements and dash arrays; which elements a live drawing has and what is written on each paint; later canvas drawing | `svgMarkup(scene) → string`, `createSvgSurface(host) → SvgSurface` |
@@ -99,12 +99,13 @@ A band that only travels or flickers costs one `sample` and one changed attribut
 - **Corner fit:** when the two corners of an edge ask for more than the edge has, both shrink by the same factor.
 - **Step placement:** a step is placed if both ramps and a pixel of flat part fit within the edge's straight run and it overlaps no step placed before it. Higher priority is placed first. Hysteresis at the threshold is not implemented yet (see the roadmap).
 - **Parallel tracks:** an offset shifts every piece and joins neighbours where they meet. What the offset consumes is dropped: a short line disappears and its neighbours join, a fillet turns sharp. The track is empty only when the shape itself is consumed.
-- **Band fit:** a band is left out when its inner edge would pass through the shape, and on a shape made of arcs alone when its inner edge would curve tighter than the band is wide. `track.holds` decides.
+- **Band fit:** a band is left out when, in its idle shape, its inner edge would pass through the shape, or, on a shape made of arcs alone, would curve tighter than the band is wide (`track.holds`). This depends on the host's size only. A state that asks for more width than the shape holds gets as much as fits (`track.widest`); it never makes a band disappear.
 - **Rings:** the radius comes from the host's smaller side; band offsets and widths are fixed pixels. Tick, dot and segment counts drop to the largest that fits; ticks can drop in multiples of a number so that a coarser band stays aligned.
 - **Seeded blocks:** on a closed band the row starts at a seeded position, so several block bands on one ring do not all begin at the same angle.
 
 ## 5. DOM contract
 
+- Bands are stacked in the order of the spec: later bands are drawn over earlier ones.
 - The host receives one child `<svg>`: `position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none`, with `aria-hidden="true"`. It covers the host's padding box.
 - The host's `position` is set to `relative` only if it is `static`, and restored on detach.
 - The room content needs is published on the host as `--hud-inset-top`, `--hud-inset-right`, `--hud-inset-bottom`, `--hud-inset-left`, in whole pixels, from the idle state. Using them is the author's choice.

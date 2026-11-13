@@ -223,3 +223,21 @@ Rejected: One number for all sides (wastes room, or collides with a step on one 
 Decision: `update(bands)` changes band parameters for good, by band id; states still override them. Numbers glide.
 Why: A value shown as progress has to change while the drawing is in any state, and a state per value is not workable.
 Rejected: Re-attaching with a new spec for every value (restarts motion).
+
+## D-036 A band is shown by its idle shape and narrowed, not hidden, by a state
+2026-11-14 · Status: accepted (the maintainer reported the defect and delegated the fix)
+Decision: Whether a band is shown depends on its idle offset and width and the host's size, and on nothing a state or a transition does. When a state asks for more width than the shape holds, the band grows as far as it can (`track.widest`).
+Why: On the 48 px segmented ring, the hover state asked for a width of 11 where only 9 holds, and the fit rule removed the band: pointing at the ring made its segments disappear. The agent had looked at hover only at larger sizes.
+Rejected: Dropping the band (the reported defect); ignoring the fit rule in states (the band would clot at the centre).
+
+## D-037 Bands are stacked in the order of the spec
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: A live surface inserts each band's element in front of the next band that already has one, so document order is spec order whichever band is drawn first.
+Why: Elements were appended in the order bands first appeared. With an `enter` state that hides some bands at first, later bands ended up underneath earlier ones. The stand-in DOM of the unit tests could not show this; the browser self-test did.
+Rejected: Creating every element up front (hidden elements for bands that may never fit).
+
+## D-038 A self-test that runs in a real browser
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `npm run selftest` writes a page that exercises `attach` with real events, observers and layout and reports each check. It is run by hand or headless; it is not part of `npm run check`, which has no browser.
+Why: The unit tests for `mount` run against a stand-in DOM, which proves logic and can hide what a browser does differently. Two defects in one day were of that kind.
+Rejected: A browser-automation dependency; trusting the stand-in.

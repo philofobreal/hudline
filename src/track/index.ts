@@ -12,9 +12,10 @@
  *
  * Interface: `resolve(shape, width, height) → Track`,
  * `offset(track, distance) → Track`, `portion(track, share) → Track`,
- * `holds(track, from, to) → boolean` and `clearance(track, depth) → Insets`.
+ * `holds(track, from, to) → boolean`, `widest(track, from, wanted) → number`
+ * and `clearance(track, depth) → Insets`.
  */
-export { clearance, holds, offset, portion, resolve } from './track.js';
+export { clearance, holds, offset, portion, resolve, widest } from './track.js';
 export type { Anchor, Insets, Track } from './track.js';
 export type {
   Along,

@@ -43,8 +43,12 @@ class FakeElement {
     this.writes++;
   }
   appendChild(child: FakeElement): FakeElement {
+    return this.insertBefore(child, null);
+  }
+  insertBefore(child: FakeElement, before: FakeElement | null): FakeElement {
     child.parent = this;
-    this.children.push(child);
+    const at = before === null ? this.children.length : this.children.indexOf(before);
+    this.children.splice(at, 0, child);
     return child;
   }
   remove(): void {
@@ -181,6 +185,23 @@ test('attach draws at once, as one svg child that does not disturb the host', ()
   assert.match(attribute(element, 0, 'd') ?? '', /^M106 2\.5L197\.5 2\.5/);
   assert.equal(attribute(element, 1, 'stroke-width'), '2');
   settle();
+});
+
+test('bands are stacked in the order of the spec, whichever is drawn first', () => {
+  const element = host(100, 100);
+  mount(element, {
+    shape: { kind: 'ring' },
+    bands: [
+      { id: 'back', width: 2 },
+      { id: 'middle', offset: 6, width: 5 },
+      { id: 'front', offset: 14, width: 3 },
+    ],
+    // The back and middle bands are not there on the first paint.
+    states: { enter: { bands: { back: { value: 0 }, middle: { value: 0 } }, settle: 0.1 } },
+  });
+  assert.deepEqual(pathsOf(element).map((path) => path.attributes.get('stroke-width')), ['3']);
+  settle();
+  assert.deepEqual(pathsOf(element).map((path) => path.attributes.get('stroke-width')), ['2', '5', '3']);
 });
 
 test('a static host becomes relative; any other position is left alone', () => {

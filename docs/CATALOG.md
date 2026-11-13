@@ -36,7 +36,7 @@ The entries below come from the maintainer's reference images. Nine of ten are w
 - A fill on a tab is a rectangle on the tab's flat part. It does not follow the slanted ramps, so small triangles beside it stay empty.
 - Outward steps (tabs) leave the base outline. The author insets the frame by the tab's depth to keep it inside the host box, as F2 does. The track does not do this automatically.
 - Major and minor ticks stay aligned at every size only if the minor band names the major count in `multipleOf`, as R2 does. Without it the minor count drops to whatever fits.
-- Bands drop when they no longer fit their shape; there is no band priority. Steps have priority, and it decides only between steps that overlap on one edge.
+- A band is shown or left out by its idle shape and the host's size; a state can narrow it but never hide it. There is no band priority. Steps have priority, and it decides only between steps that overlap on one edge.
 - Steps and bands that were left out come back only with 4 px to spare. Tick, dot and segment counts still change exactly at their thresholds.
 - A filleted frame whose straight sides are consumed by a deep offset loses that band entirely.
 - Flicker and breathing switch on and off at once when a state changes `motion`; only numbers glide.

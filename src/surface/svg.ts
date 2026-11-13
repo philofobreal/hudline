@@ -115,7 +115,13 @@ export function createSvgSurface(host: Element): SvgSurface {
     let slot = slots[band];
     if (slot === undefined) {
       const path = host.ownerDocument.createElementNS(SVG, 'path');
-      root.appendChild(path);
+      // Bands are stacked in the order of the spec, whichever is drawn
+      // first: the path goes in front of the next band that has one.
+      let above: Element | null = null;
+      for (let next = band + 1; next < slots.length && above === null; next++) {
+        above = slots[next]?.path ?? null;
+      }
+      root.insertBefore(path, above);
       slot = {
         path,
         shown: true,

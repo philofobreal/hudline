@@ -4,7 +4,7 @@ import { compile } from '../pattern/index.js';
 import type { Dashes } from '../pattern/index.js';
 import { svgMarkup } from '../surface/index.js';
 import type { Layer, Scene } from '../surface/index.js';
-import { clearance, holds, offset, portion, resolve } from '../track/index.js';
+import { clearance, holds, offset, portion, resolve, widest } from '../track/index.js';
 import type { Insets, Track } from '../track/index.js';
 import type { BandOverride, BandSpec, HudSpec } from './spec.js';
 
@@ -72,11 +72,19 @@ interface BandRuntime {
   readonly frame: BandFrame;
   readonly layer: Mutable<Layer>;
   // Everything below is kept until the inputs it depends on change.
+  /** The idle geometry `fits` was worked out for. */
+  fitBase: Track | undefined;
   fitFor: number;
   fitTo: number;
+  /** Whether the band, as it is in idle, fits the shape at all. */
   fits: boolean;
   /** Whether `fits` has ever been worked out. */
   fitKnown: boolean;
+  /** The sampled offset and width `widthNow` was worked out for. */
+  widthFor: number;
+  widthWanted: number;
+  /** The sampled width, narrowed to what the shape holds. */
+  widthNow: number;
   centreAt: number;
   centre: Track;
   dashesFor: Track | undefined;
@@ -128,10 +136,14 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
         phase: 0,
         opacity: 0,
       },
+      fitBase: undefined,
       fitFor: Number.NaN,
       fitTo: Number.NaN,
       fits: false,
       fitKnown: false,
+      widthFor: Number.NaN,
+      widthWanted: Number.NaN,
+      widthNow: 0,
       centreAt: Number.NaN,
       centre: NO_TRACK,
       dashesFor: undefined,
@@ -150,7 +162,7 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
    */
   function invalidate(): void {
     for (const band of bands) {
-      band.fitFor = Number.NaN;
+      band.widthFor = Number.NaN;
       band.centreAt = Number.NaN;
     }
   }
@@ -181,21 +193,35 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
       }
       if (!(frame.width > 0)) continue;
 
-      // A host too small for this band: leave the band out.
-      const to = frame.offset + frame.width;
-      if (band.fitFor !== frame.offset || band.fitTo !== to) {
-        band.fitFor = frame.offset;
-        band.fitTo = to;
+      // Whether the band is shown at all is decided by its idle shape
+      // alone, so that it depends on the host's size and on nothing a
+      // state or a transition does.
+      const idleTo = band.idle.offset + band.idle.width;
+      if (band.fitBase !== base || band.fitFor !== band.idle.offset || band.fitTo !== idleTo) {
+        band.fitBase = base;
+        band.fitFor = band.idle.offset;
+        band.fitTo = idleTo;
         const spare = band.fitKnown && !band.fits ? HYSTERESIS : 0;
-        band.fits = holds(base, frame.offset, to, spare);
+        band.fits = holds(base, band.idle.offset, idleTo, spare);
         band.fitKnown = true;
       }
       if (!band.fits) continue;
 
-      const centreAt = frame.offset + frame.width / 2;
+      // A state may ask for more width than the shape holds here. The
+      // band then grows as far as it can instead of vanishing.
+      if (band.widthFor !== frame.offset || band.widthWanted !== frame.width) {
+        band.widthFor = frame.offset;
+        band.widthWanted = frame.width;
+        band.widthNow = widest(base, frame.offset, frame.width);
+      }
+      const width = band.widthNow;
+      if (!(width > 0)) continue;
+
+      const centreAt = frame.offset + width / 2;
       if (centreAt !== band.centreAt) {
         band.centreAt = centreAt;
         band.centre = offset(base, centreAt);
+        // The new centreline has a new length, and spin is measured in laps.
         if (!atRest) sample(band.state, band.centre.length, band.centre.closed, time, frame);
       }
       const centre = band.centre;
@@ -206,7 +232,7 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
         band.dashes = compile(band.spec.pattern ?? { kind: 'solid' }, {
           length: centre.length,
           cyclic,
-          width: frame.width,
+          width,
           anchors: centre.anchors,
           random,
         });
@@ -220,7 +246,7 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
 
       const layer = band.layer;
       layer.track = band.shown;
-      layer.width = frame.width;
+      layer.width = width;
       layer.dashes = band.dashes;
       layer.patternLength = centre.length;
       layer.phase = frame.phase;

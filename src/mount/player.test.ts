@@ -124,6 +124,41 @@ test('states glide, can be interrupted, and unknown names mean idle', () => {
   near(width(29), 8, 1e-6);
 });
 
+test('a state that asks for more width than fits narrows the band instead of hiding it', () => {
+  const spec: HudSpec = {
+    shape: { kind: 'ring', inset: 2 },
+    bands: [
+      { id: 'outline', width: 1 },
+      { id: 'segments', offset: 5, width: 8, pattern: { kind: 'segments', count: 12, gap: 4 } },
+    ],
+    states: { hover: { bands: { segments: { offset: 4, width: 11 } } } },
+  };
+  // Radius 22: from offset 4 a band holds while it is narrower than 9.
+  const small = createPlayer(spec, 48, 48, true);
+  assert.equal(small.scene(0).layers.length, 2);
+  small.set('hover', 0);
+  const [, segments] = small.scene(10).layers;
+  assert.ok(segments !== undefined, 'the band must stay');
+  assert.ok(segments.width > 8.5 && segments.width < 9, `width ${segments.width}`);
+
+  // With room, the state gets what it asked for.
+  const large = createPlayer(spec, 200, 200, true);
+  large.set('hover', 0);
+  assert.equal(large.scene(10).layers[1]?.width, 11);
+});
+
+test('a band that does not fit in idle stays out whatever a state asks', () => {
+  const spec: HudSpec = {
+    shape: { kind: 'ring' },
+    bands: [{ id: 'thick', offset: 10, width: 12 }],
+    states: { hover: { bands: { thick: { width: 2 } } } },
+  };
+  const player = createPlayer(spec, 40, 40, true);
+  assert.equal(player.scene(0).layers.length, 0);
+  player.set('hover', 0);
+  assert.equal(player.scene(10).layers.length, 0);
+});
+
 test('resizing keeps motion going and re-fits the bands', () => {
   const spec: HudSpec = {
     shape: { kind: 'ring' },
