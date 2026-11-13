@@ -9,8 +9,10 @@
 /**
  * An interval tied to a named anchor of the track (a frame corner, or a
  * step that has an `id`). It covers the anchor's own extent, widened by
- * `before` and `after` pixels; negative values trim it. A span whose
- * anchor does not exist on the resolved track draws nothing.
+ * `before` and `after` pixels; negative values trim it. Its ends are cut
+ * square across the band, a hair inside where this puts them, so that
+ * they never sit on a corner of the track. A span whose anchor does not
+ * exist on the resolved track draws nothing.
  */
 export interface Span {
   readonly anchor: string;

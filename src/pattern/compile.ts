@@ -44,6 +44,12 @@ export interface PatternContext {
  * only cost time; patterns are thinned or drawn solid instead.
  */
 const MAX_INTERVALS = 2048;
+/**
+ * How far a span's ends are pulled in from where the anchor arithmetic
+ * puts them, in pixels: too little to see, enough to stay clear of the
+ * rounding of path coordinates and dash lengths.
+ */
+const SPAN_INSET = 0.05;
 /** The shortest segment worth drawing, in pixels. */
 const MIN_SEGMENT = 1;
 
@@ -103,8 +109,12 @@ export function compile(spec: PatternSpec, context: PatternContext): Dashes {
         spec.spans.flatMap((span) => {
           const anchor = context.anchors?.[span.anchor];
           if (anchor === undefined) return [];
-          const start = anchor.start - finiteOr(span.before, 0);
-          const end = anchor.end + finiteOr(span.after, 0);
+          // An anchor's ends are corners of the track. A dash that ends
+          // exactly on a corner picks up a sliver of the turn there, or
+          // not, depending on the last decimal; pulled in by a hair, its
+          // end is a clean cut across the band whatever the rounding.
+          const start = anchor.start - finiteOr(span.before, 0) + SPAN_INSET;
+          const end = anchor.end + finiteOr(span.after, 0) - SPAN_INSET;
           return end > start ? [[start, end] as const] : [];
         }),
         length,

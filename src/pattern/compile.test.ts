@@ -174,8 +174,17 @@ test('spans follow anchors, widen and trim, and ignore unknown names', () => {
       { anchor: 'missing' },
     ],
   } as const;
-  near(compile(spec, context).intervals, [0, 15, 44, 56, 95, 100]);
-  near(compile(spec, { ...context, cyclic: false }).intervals, [0, 15, 44, 56]);
+  // Every span end sits a hair (0.05) inside where the arithmetic puts it.
+  near(compile(spec, context).intervals, [0, 14.95, 44.05, 55.95, 95.05, 100]);
+  near(compile(spec, { ...context, cyclic: false }).intervals, [0, 14.95, 44.05, 55.95]);
+});
+
+test('a span on an anchor ends just inside the anchor, never on its corners', () => {
+  const context = { ...closed(100), anchors: { tab: { start: 40, end: 60 } } };
+  const [start, end] = compile({ kind: 'spans', spans: [{ anchor: 'tab' }] }, context).intervals;
+  assert.ok(start !== undefined && end !== undefined);
+  assert.ok(start > 40 && start < 40.1, `start ${start}`);
+  assert.ok(end < 60 && end > 59.9, `end ${end}`);
 });
 
 test('degenerate input yields no pattern instead of an error', () => {

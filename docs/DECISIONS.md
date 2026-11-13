@@ -260,3 +260,10 @@ Known limit: a state cannot change the fill.
 Decision: A band with `addressable: true` is drawn as one element per part of its pattern, and its flicker dims the parts one by one, each on its own curve. An interval that crosses the seam is one part.
 Why: The field had been accepted by the type since M0 and honoured by nothing. Blocks that blink independently are a signature of the look.
 Rejected: Removing the field (the look needs it); one element per part for every band (most bands need one element).
+
+## D-042 Span ends sit a hair inside their corners
+2026-11-14 · Status: accepted (the maintainer reported the defect and delegated the fix)
+Decision: Every span's ends are pulled in by 0.05 px from where the anchor arithmetic puts them.
+Why: An anchor's ends are corners of the track. A dash that ends exactly on a corner picks up a sliver of the turn there or not, depending on the last decimal of a rounded number, so the ends of the tab's fill showed notches that jumped from frame to frame while the band's width changed on hover.
+Rejected: More decimals (moves the threshold, does not remove it); drawing fills as separate shapes (a second drawing mechanism for one artefact).
+Known limit: the fill is as long as the flat part of its own centreline, which gets a little shorter as the band gets wider, so its ends still move by about half a pixel during a hover, smoothly.
