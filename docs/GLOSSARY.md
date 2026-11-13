@@ -11,7 +11,11 @@ Use these terms in code, comments and docs. Do not introduce synonyms.
 | Period | periódus | Length after which a repeating pattern repeats |
 | Phase | fázis | Shift of a pattern along the track |
 | Corner operator | sarokoperátor | Rule that shapes a corner: chamfer, fillet |
-| Edge operator | éloperátor | Rule that shapes an edge: tab, step, notch |
+| Edge operator | éloperátor | Rule that shapes an edge. One exists: step |
+| Step | lépcső | Displaced stretch of an edge; negative depth makes a tab, a short positive one a notch |
+| Anchor | horgony | Named interval on a track: a frame corner or a step with an id |
+| Span | fesztáv | Pattern interval tied to an anchor |
+| Intervals | intervallumok | Pattern of explicit stretches given as fractions of the length |
 | Detail | részlet | A fixed-size feature produced by an operator, or a tick |
 | Priority | prioritás | Order in which details drop when space is short |
 | Budget | költségvetés | Edge length available for details |
@@ -25,7 +29,7 @@ Use these terms in code, comments and docs. Do not introduce synonyms.
 | Spin | forgás | Rigid rotation of a ring band |
 | Drift | sodródás | Phase motion of a pattern along a track |
 | Draw-on | kirajzolódás | Revealing a band from zero to full length |
-| Value | érték | A number in 0–1 shown as filled arc length |
+| Value | érték | Share of a band that is revealed, 0–1; used for progress and draw-on |
 | State | állapot | Named parameter set (idle, hover, active, alert) |
 | Surface | felület | A renderer: SVG now, canvas later |
 | Safe inset | biztonságos margó | Distance content should keep from each host side |

@@ -71,3 +71,45 @@ Rejected: Frames first (hardest geometry before the shared modules are proven).
 Decision: Renderers must agree on geometry and timing within a 1 px visual tolerance.
 Why: Pixel identity across SVG and canvas costs far more than it is worth.
 Rejected: Pixel-exact parity.
+
+## D-011 Open decisions delegated to the agent's recommendations
+2026-11-13 · Status: accepted
+Decision: The maintainer delegated the decisions open on this date to the agent's recommendations. D-012 to D-017 were made under that delegation.
+Why: To close milestone M0 without a further round of questions.
+Rejected: Waiting for item-by-item answers. The maintainer can supersede any of these entries.
+
+## D-012 Band placement by offset and width, inward
+2026-11-13 · Status: accepted
+Decision: A band covers `offset` to `offset + width` from the track, toward the inside. Ticks of two lengths are two bands with the same offset.
+Why: Shared offsets give a shared outer edge without any alignment option, and remove the need for per-tick widths.
+Rejected: Centred bands with an alignment flag (one more concept); an addressable band for tick lengths (costs nodes).
+
+## D-013 Fills and corner accents are bands on anchored spans
+2026-11-13 · Status: accepted
+Decision: `track` publishes named anchors (corners, steps with an `id`). The `spans` pattern refers to them by name. A fill is a band limited to a span.
+Why: `pattern` stays general (intervals on a length) and `track` keeps all knowledge of where things are.
+Rejected: A separate fill concept; letting `pattern` compute corner positions.
+
+## D-014 One edge operator and reading-direction positions
+2026-11-13 · Status: accepted
+Decision: `step` is the only edge operator; tabs and notches are steps. Positions along an edge are pixels from start, centre or end, or a fraction, in reading direction.
+Why: One general operator covers the three shapes in the reference images. Reading direction spares authors from knowing the track's direction of travel.
+Rejected: Separate tab, notch and step operators; positions in travel direction.
+
+## D-015 Angle and value conventions
+2026-11-13 · Status: accepted
+Decision: 0° points up and angles grow clockwise. A band's `value` (0–1) reveals that share of the band; progress and draw-on are the same parameter.
+Why: Matches how gauges and clocks are read; one parameter instead of two.
+Rejected: The mathematical convention (0° right, counter-clockwise).
+
+## D-016 Spec types live in the module that interprets them; catalogue as a data module
+2026-11-13 · Status: accepted
+Decision: `track`, `pattern` and `motion` each own their spec types; `mount` owns the combining types. A sixth module, `catalog`, holds the catalogue as typed data and may import types from `mount` only.
+Why: A spec type next to its interpreter cannot drift from it. Typed catalogue entries make the compiler prove coverage.
+Rejected: One central spec file (every module would depend on it and it would know every module's decisions).
+
+## D-017 MIT licence and a rules script
+2026-11-13 · Status: accepted
+Decision: The project is published under the MIT licence. `scripts/check-rules.mjs` enforces the dependency allowlist, the import direction and the purity of the core, as part of `npm run check`.
+Why: A public repository without a licence cannot be used by anyone. Rules that nothing checks erode.
+Rejected: No licence; a lint dependency for the import rules.

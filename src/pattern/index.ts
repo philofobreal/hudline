@@ -5,6 +5,8 @@
  * and how two patterns are blended. Knows nothing about shapes, the DOM
  * or time. Pure.
  *
- * Planned interface: `compile(spec, length) → Dashes` (milestone M1).
+ * Planned interface: `compile(spec, length, anchors) → Dashes`
+ * (milestone M1).
  */
 export { fitPeriod } from './fit.js';
+export type { PatternSpec, Span } from './spec.js';

@@ -41,7 +41,7 @@ When approval is needed: stop, describe the change, the reason, and one alternat
 If a task seems to require breaking one of these, stop and ask.
 
 1. **Zero runtime dependencies.** `dependencies` in `package.json` stays empty.
-2. **Dependency direction.** `mount` may import `track`, `pattern`, `motion`, `surface`. `surface` may import types from `track` and `pattern`. `track`, `pattern` and `motion` import nothing from other modules. No cycles.
+2. **Dependency direction.** `mount` may import `track`, `pattern`, `motion`, `surface`. `surface` may import types from `track` and `pattern`. `catalog` may import types from `mount`. `track`, `pattern` and `motion` import nothing from other modules. Modules reach each other through `index.ts` only. No cycles. Enforced by `npm run rules`.
 3. **Pure core.** `track`, `pattern` and `motion` never touch `window`, `document`, timers, `Math.random` or `Date`. Time and seeds are parameters.
 4. **Lines and circular arcs only.** No Béziers, no path flattening. Arc length and offsets are exact closed-form values.
 5. **Never mutate host layout.** The library may add one absolutely positioned, pointer-transparent child and set CSS custom properties on the host. It may set `position: relative` only when the host is `static`. Nothing else.
@@ -63,7 +63,7 @@ If a task seems to require breaking one of these, stop and ask.
 
 ## 6. Definition of done
 
-- `npm run check` passes (typecheck, build, tests).
+- `npm run check` passes (typecheck, rules, build, tests).
 - New behaviour has tests; geometry tests include a degenerate case (zero size, tiny size, huge size).
 - No invariant in section 4 is broken.
 - The red-flag checklist in `docs/DESIGN_PRINCIPLES.md` was walked through.
@@ -85,10 +85,13 @@ Tag non-obvious claims with `[certain]`, `[likely]` or `[guess]`.
 ```
 npm install        # dev dependencies only
 npm run typecheck  # tsc --noEmit
+npm run rules      # scripts/check-rules.mjs: invariants 1, 2 and 3
 npm run build      # tsc → dist/
 npm test           # build, then node --test
-npm run check      # typecheck + test
+npm run check      # typecheck + rules + test
 ```
+
+`npm run rules` checks only what a script can check. Passing it does not prove the other invariants hold. When a rule changes in this file, change `scripts/check-rules.mjs` in the same commit.
 
 ## 9. Language and style
 

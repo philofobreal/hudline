@@ -23,16 +23,29 @@ A ring is a track that is a circle. A frame is a track that is a closed polygon 
 | `motion` | Clock handling, springs, noise, seeded randomness, state transitions | `drive(params, time) → values` |
 | `surface` | SVG node management now; canvas drawing later | `paint(track, bands, values)` |
 | `mount` | Observers, lifecycle, turning DOM events into states | the public API |
+| `catalog` | Nothing; it is data: the catalogue entries as typed specs, later the presets | `catalog` |
 
 ### Dependency rule
 
 ```
 mount ──► track, pattern, motion, surface
 surface ──► types of track and pattern
+catalog ──► types of mount
 track, pattern, motion ──► nothing
 ```
 
-`track`, `pattern` and `motion` are pure and run without a DOM.
+`track`, `pattern` and `motion` are pure and run without a DOM. Modules reach each other through `index.ts` only. `scripts/check-rules.mjs` enforces this section.
+
+### Where the spec types live
+
+Each module owns the part of the spec language that describes its own decisions, so the language cannot drift from the code that interprets it.
+
+| Types | Owner |
+|---|---|
+| `ShapeSpec`, corner and edge operators, `Along` | `track` |
+| `PatternSpec`, `Span` | `pattern` |
+| `MotionSpec` | `motion` |
+| `BandSpec`, `StateSpec`, `HudSpec` | `mount` |
 
 ### Public API (planned)
 
@@ -56,6 +69,13 @@ One shared `requestAnimationFrame` loop serves all elements.
 
 ## 4. Geometry rules
 
+- **Units:** lengths in CSS pixels, angles in degrees at the public interface, time in seconds.
+- **Angles:** 0° points up and angles grow clockwise. Closed tracks travel clockwise.
+- **Edge positions:** measured in reading direction (left to right, top to bottom), whatever the track's direction of travel.
+- **Band placement:** a band covers `offset` to `offset + width` from the track, toward the inside. Bands with equal offsets share their outer edge.
+- **Anchors:** `track` publishes named intervals on the track: the frame corners `tl`, `tr`, `br`, `bl` and every step that has an `id`. Span patterns refer to them by name; a span on a missing anchor draws nothing.
+- **One edge operator:** `step` displaces a stretch of an edge. A tab is a step with negative depth, a notch a short step with positive depth.
+- **Value:** a band's `value` (0–1) reveals that share of the band from the track's start. Progress and draw-on are the same parameter.
 - **Primitives:** line and circular arc. The offset of a line is a line; the offset of an arc is a concentric arc. Lengths are closed-form.
 - **Seamless patterns:** on a closed track the period is fitted to the length, `p' = L / round(L / p)`.
 - **Detail budget:** each edge has a budget (length minus corners). Details are placed by priority and dropped when they do not fit, with hysteresis so that a size near the threshold does not flicker.

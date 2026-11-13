@@ -9,3 +9,4 @@
  */
 export { createRandom } from './random.js';
 export type { Random } from './random.js';
+export type { MotionSpec } from './spec.js';
