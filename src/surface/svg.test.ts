@@ -8,6 +8,8 @@ const layer = (intervals: readonly number[], extra: Partial<Layer> = {}): Layer 
   track,
   width: 4,
   dashes: { intervals, cap: 'butt' },
+  patternLength: 100,
+  phase: 0,
   opacity: 1,
   ...extra,
 });
@@ -34,6 +36,24 @@ test('intervals become dashes and gaps that add up to the track length', () => {
 test('an interval starting at zero needs no offset', () => {
   const [path] = paths(svgMarkup({ width: 10, height: 10, layers: [layer([0, 5, 95, 100])] }));
   assert.match(path as string, /stroke-dasharray="5 90 5 0"\/>/);
+});
+
+test('travel moves the pattern forward and wraps at the pattern length', () => {
+  const at = (phase: number) =>
+    paths(svgMarkup({ width: 10, height: 10, layers: [layer([10, 30, 50, 60], { phase })] }))[0];
+  assert.match(at(5) as string, /stroke-dashoffset="-15"/);
+  assert.equal(at(105), at(5));
+  assert.match(at(-10) as string, /stroke-dasharray="20 20 10 50" stroke-dashoffset="-100"/);
+});
+
+test('a shown share shorter than the pattern keeps the full dash array', () => {
+  const half = { ...track, closed: false, length: 50 };
+  const [path] = paths(
+    svgMarkup({ width: 10, height: 10, layers: [layer([10, 30, 50, 60], { track: half })] }),
+  );
+  assert.match(path as string, /stroke-dasharray="20 20 10 50"/);
+  const [solid] = paths(svgMarkup({ width: 10, height: 10, layers: [layer([0, 100], { track: half })] }));
+  assert.doesNotMatch(solid as string, /dasharray/);
 });
 
 test('dots use round caps and opacity is written only when it matters', () => {

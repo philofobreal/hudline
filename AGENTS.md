@@ -89,7 +89,7 @@ npm run rules      # scripts/check-rules.mjs: invariants 1, 2 and 3
 npm run build      # tsc → dist/
 npm test           # build, then node --test
 npm run check      # typecheck + rules + test
-npm run gallery    # build, then write gallery.html (not committed)
+npm run gallery    # build, then write a self-contained gallery.html (not committed)
 ```
 
 Anything that changes what is drawn is not done until you have looked at the rendered gallery yourself. Tests prove numbers, not appearance.

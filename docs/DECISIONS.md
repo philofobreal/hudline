@@ -115,31 +115,55 @@ Why: A public repository without a licence cannot be used by anyone. Rules that 
 Rejected: No licence; a lint dependency for the import rules.
 
 ## D-018 Tracks are opaque and carry path data
-2026-11-13 · Status: proposed
+2026-11-13 · Status: accepted (maintainer, after viewing the M1 gallery)
 Decision: A `Track` exposes `length`, `closed`, `anchors` and `path`. Its segments and the angle convention stay inside `track`; users get parallel tracks from `offset`.
 Why: SVG and `Path2D` both accept path data, so no renderer needs the segments, and the convention lives in one place.
 Rejected: Exposing segments to `surface` (the convention would have to be known twice).
 
 ## D-019 Counts drop to the largest that fits; ticks may drop in multiples
-2026-11-13 · Status: proposed
+2026-11-13 · Status: accepted (maintainer, after viewing the M1 gallery)
 Decision: Ticks, dots and segments drop to the largest count that fits instead of halving. `ticks` gains `multipleOf`. Supersedes the halving rule noted in the spec comments of D-012's time.
 Why: Halving breaks alignment between a 60-tick and a 12-tick band (30 is not a multiple of 12) and wastes room. Multiples of the coarser count keep every major tick on a minor one.
 Rejected: Halving; a thinning group shared between bands (more machinery for the same result).
 
 ## D-020 Patterns receive randomness through their context
-2026-11-13 · Status: proposed
+2026-11-13 · Status: accepted (maintainer, after viewing the M1 gallery)
 Decision: `compile` takes a `random(seed)` factory in its context. `mount` supplies it from `motion.createRandom`, mixing in the host seed.
 Why: `pattern` must not import `motion`, and copying the generator would be repetition. The caller already owns seed mixing.
 Rejected: A shared utility module (a boundary change for twelve lines); a second generator inside `pattern`.
 
 ## D-021 Band limit and seeded start of block bands
-2026-11-13 · Status: proposed
+2026-11-13 · Status: accepted (maintainer, after viewing the M1 gallery)
 Decision: A band is left out when less than its own width would remain inside it. On a closed band, seeded blocks start at a seeded position.
 Why: Both came from looking at the first renders: bands near the centre clotted into blobs, and four block bands starting at 12 o'clock formed a visible spoke.
 Rejected: Leaving either to the author to work around in every spec.
 
 ## D-022 `renderToString` is public
-2026-11-13 · Status: proposed
+2026-11-13 · Status: accepted (maintainer, after viewing the M1 gallery)
 Decision: `renderToString(spec, width, height)` is exported: a standalone SVG at rest.
 Why: It is how milestone M1's output is produced and inspected, and it serves server rendering and tests without a DOM.
 Rejected: Keeping it internal and rendering the gallery through a private import.
+
+## D-023 Travel is a dash offset; a travelling pattern is cyclic
+2026-11-13 · Status: proposed
+Decision: A pattern's travel is expressed by the surface as a dash offset on a dash array as long as the band. A band whose pattern travels is laid out cyclically even on an open track: what leaves at the end comes back in at the start. `PatternContext.closed` became `cyclic`.
+Why: One mechanism for rings and open arcs, no pattern recompilation per frame, and no seam on a moving open band. Replaces the earlier idea of rotating rings with a transform.
+Rejected: Transform rotation (rings only); recompiling the pattern with a phase every frame (allocates in the frame path).
+
+## D-024 Value is a portion of the track
+2026-11-13 · Status: proposed
+Decision: `value` shortens the drawn path (`track.portion`) instead of clipping the pattern. `pattern.reveal`, added in M1, is removed.
+Why: A pattern can travel under a fixed reveal only if the two are independent; clipping the intervals made them move together.
+Rejected: Clipping intervals (wrong once the pattern moves); a mask element per band.
+
+## D-025 States as overrides, `enter` for draw-on, motion replaced not merged
+2026-11-13 · Status: proposed
+Decision: A state overrides band parameters by band `id`. Numbers glide on a critically damped spring and stay continuous in value and speed when interrupted. A state's `motion` replaces the band's motion; travel so far is kept, so the pattern never jumps. If `enter` is defined, bands start in it and move to idle.
+Why: One mechanism covers hover, alert, progress changes and draw-on. Critical damping settles fastest without overshoot.
+Rejected: A separate draw-on option; merging motion objects (ambiguous when a state wants to stop one effect).
+
+## D-026 A headless player is public
+2026-11-13 · Status: proposed
+Decision: `createPlayer(spec, width, height)` is exported. It has `set(state, time)`, `resize`, `scene(time)` and `markup(time)`; the caller supplies the time.
+Why: It is the engine `attach` will drive in M4, the natural entry for the later canvas renderer, and what makes motion testable and reproducible.
+Rejected: Keeping it private and exposing only `attach` (canvas users and tests would have no entry point).

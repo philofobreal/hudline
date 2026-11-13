@@ -12,7 +12,7 @@ import type { HudSpec } from '../mount/index.js';
 const segmentedRing: HudSpec = {
   shape: { kind: 'ring', inset: 2 },
   bands: [
-    { width: 1 },
+    { id: 'outline', width: 1 },
     {
       id: 'segments',
       offset: 5,
@@ -21,6 +21,13 @@ const segmentedRing: HudSpec = {
       motion: { spin: 20 },
     },
   ],
+  states: {
+    enter: { outline: { value: 0 }, segments: { value: 0, opacity: 0 } },
+    hover: { segments: { offset: 4, width: 11, motion: { spin: 90 } } },
+    alert: {
+      segments: { motion: { spin: -140, flicker: { seed: 1, rate: 9, depth: 0.7 } } },
+    },
+  },
 };
 
 /**
@@ -31,15 +38,27 @@ const segmentedRing: HudSpec = {
 const scaleRing: HudSpec = {
   shape: { kind: 'ring', inset: 2 },
   bands: [
-    { width: 1 },
+    { id: 'outline', width: 1 },
     {
+      id: 'minor',
       offset: 4,
       width: 5,
       pattern: { kind: 'ticks', count: 60, minSpacing: 4, multipleOf: 12 },
       priority: 1,
     },
-    { offset: 4, width: 10, pattern: { kind: 'ticks', count: 12, thickness: 2 }, priority: 2 },
+    {
+      id: 'major',
+      offset: 4,
+      width: 10,
+      pattern: { kind: 'ticks', count: 12, thickness: 2 },
+      priority: 2,
+    },
   ],
+  states: {
+    enter: { outline: { value: 0 }, minor: { value: 0 }, major: { value: 0 } },
+    hover: { major: { width: 14 } },
+    alert: { minor: { motion: { flicker: { seed: 5, rate: 12, depth: 0.8 } } } },
+  },
 };
 
 /** R3 Irregular block ring: seeded bands turning against each other. */
@@ -47,12 +66,14 @@ const blockRing: HudSpec = {
   shape: { kind: 'ring', inset: 2 },
   bands: [
     {
+      id: 'a',
       width: 3,
       pattern: { kind: 'blocks', seed: 1, min: 20, max: 90, gap: 6 },
       motion: { spin: 12 },
       priority: 3,
     },
     {
+      id: 'b',
       offset: 7,
       width: 8,
       pattern: { kind: 'blocks', seed: 2, min: 8, max: 40, gap: 4, density: 0.8 },
@@ -60,6 +81,7 @@ const blockRing: HudSpec = {
       priority: 2,
     },
     {
+      id: 'c',
       offset: 19,
       width: 2,
       pattern: { kind: 'blocks', seed: 3, min: 30, max: 120, gap: 10 },
@@ -67,6 +89,7 @@ const blockRing: HudSpec = {
       priority: 1,
     },
     {
+      id: 'd',
       offset: 25,
       width: 5,
       pattern: { kind: 'blocks', seed: 4, min: 6, max: 24, gap: 3, density: 0.6 },
@@ -74,17 +97,34 @@ const blockRing: HudSpec = {
       addressable: true,
     },
   ],
+  states: {
+    enter: {
+      a: { opacity: 0, value: 0 },
+      b: { opacity: 0 },
+      c: { opacity: 0, value: 0 },
+      d: { opacity: 0 },
+    },
+    hover: { b: { motion: { spin: -70 } }, c: { motion: { spin: 40 } } },
+    alert: {
+      a: { motion: { spin: 120 } },
+      b: { motion: { spin: -160, flicker: { seed: 2, rate: 10, depth: 0.6 } } },
+      c: { motion: { spin: 90 } },
+      d: { motion: { spin: -200, flicker: { seed: 4, rate: 14, depth: 0.8 } } },
+    },
+  },
 };
 
 /** R4 Value arc: a 270° guide with a thicker band filled to a value. */
 const valueArc: HudSpec = {
   shape: { kind: 'arc', start: -135, sweep: 270, inset: 2 },
   bands: [
-    { width: 1 },
+    { id: 'guide', width: 1 },
     { id: 'value', offset: 3, width: 4, value: 0.7 },
   ],
   states: {
-    alert: { value: { opacity: 1, motion: { flicker: { seed: 9, rate: 6, depth: 0.6 } } } },
+    enter: { guide: { value: 0 }, value: { value: 0 } },
+    hover: { value: { width: 6 } },
+    alert: { value: { value: 0.95, motion: { flicker: { seed: 9, rate: 6, depth: 0.6 } } } },
   },
 };
 

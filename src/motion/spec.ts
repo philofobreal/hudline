@@ -8,7 +8,8 @@
 export interface MotionSpec {
   /**
    * Speed at which the pattern travels along the track, in pixels per
-   * second. Positive follows the track's direction (clockwise).
+   * second. Positive follows the track's direction (clockwise). On an
+   * open band, what leaves at the end comes back in at the start.
    */
   readonly drift?: number;
   /**
@@ -19,7 +20,8 @@ export interface MotionSpec {
   /**
    * Noise-driven opacity changes. `rate` is how many times per second
    * the level changes on average; `depth` (0–1) is how far opacity may
-   * fall. On an addressable band every segment flickers on its own.
+   * fall. On an addressable band every segment will flicker on its own
+   * once addressable bands are implemented (milestone M5).
    */
   readonly flicker?: {
     readonly seed: number;

@@ -3,12 +3,19 @@ import type { Track } from '../track/index.js';
 
 /** One band, ready to draw: where it runs, how wide, which parts. */
 export interface Layer {
-  /** The band's centreline. */
+  /** The part of the band's centreline that is shown. */
   readonly track: Track;
   /** Band width in CSS pixels. */
   readonly width: number;
-  /** Drawn stretches, compiled for this track's length. */
+  /** Drawn stretches, compiled for `patternLength`. */
   readonly dashes: Dashes;
+  /**
+   * The length the pattern was laid out for: the whole centreline, which
+   * is longer than `track` when only a share of the band is shown.
+   */
+  readonly patternLength: number;
+  /** How far the pattern has travelled along the band, in pixels. */
+  readonly phase: number;
   /** 0–1. */
   readonly opacity: number;
 }
@@ -46,18 +53,20 @@ function layerMarkup(layer: Layer): string {
 
   let attributes = `d="${track.path}" stroke-width="${format(layer.width)}"`;
   if (dashes.cap === 'round') attributes += ' stroke-linecap="round"';
-  attributes += dashAttributes(dashes.intervals, track.length);
+  attributes += dashAttributes(dashes.intervals, layer.patternLength, layer.phase);
   if (layer.opacity < 1) attributes += ` opacity="${format(layer.opacity)}"`;
   return `<path ${attributes}/>`;
 }
 
 /**
  * Expresses intervals as a dash array. The array alternates dash and gap
- * and its sum equals the track length, so the pattern never repeats
+ * and its sum equals the pattern length, so the pattern never repeats
  * within the path; the gap after the last dash runs on to the first
- * dash, and a negative offset moves the first dash to where it belongs.
+ * dash. A negative dash offset moves the first dash to where it belongs
+ * and carries the pattern's travel: because the array is as long as the
+ * band, what leaves at the end comes back in at the start.
  */
-function dashAttributes(intervals: readonly number[], length: number): string {
+function dashAttributes(intervals: readonly number[], length: number, phase: number): string {
   const first = intervals[0] as number;
   const solid = intervals.length === 2 && first <= 0 && (intervals[1] as number) >= length;
   if (solid) return '';
@@ -69,7 +78,9 @@ function dashAttributes(intervals: readonly number[], length: number): string {
     const next = i + 2 < intervals.length ? (intervals[i + 2] as number) : length + first;
     parts.push(format(end - start), format(next - end));
   }
-  const offset = first === 0 ? '' : ` stroke-dashoffset="${format(-first)}"`;
+  const travelled = Number.isFinite(phase) && length > 0 ? phase - Math.floor(phase / length) * length : 0;
+  const shift = first + travelled;
+  const offset = shift === 0 ? '' : ` stroke-dashoffset="${format(-shift)}"`;
   return ` stroke-dasharray="${parts.join(' ')}"${offset}`;
 }
 

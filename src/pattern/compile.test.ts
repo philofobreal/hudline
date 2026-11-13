@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compile, reveal } from './compile.js';
+import { compile } from './compile.js';
 import type { PatternContext } from './compile.js';
 
 /** A small deterministic generator; the real one lives in `motion`. */
@@ -14,11 +14,11 @@ function random(seed: number): () => number {
 
 const closed = (length: number, width = 4): PatternContext => ({
   length,
-  closed: true,
+  cyclic: true,
   width,
   random,
 });
-const open = (length: number, width = 4): PatternContext => ({ ...closed(length, width), closed: false });
+const open = (length: number, width = 4): PatternContext => ({ ...closed(length, width), cyclic: false });
 
 const near = (actual: readonly number[], expected: readonly number[]) => {
   assert.equal(actual.length, expected.length, `${actual} vs ${expected}`);
@@ -175,16 +175,7 @@ test('spans follow anchors, widen and trim, and ignore unknown names', () => {
     ],
   } as const;
   near(compile(spec, context).intervals, [0, 15, 44, 56, 95, 100]);
-  near(compile(spec, { ...context, closed: false }).intervals, [0, 15, 44, 56]);
-});
-
-test('reveal keeps the first share of the band', () => {
-  const dashes = compile({ kind: 'segments', count: 4, gap: 2 }, closed(100));
-  near(reveal(dashes, 100, 0.4).intervals, [1, 24, 26, 40]);
-  near(reveal(dashes, 100, 0).intervals, []);
-  assert.equal(reveal(dashes, 100, 1), dashes);
-  assert.equal(reveal(dashes, 100, Number.NaN), dashes);
-  near(reveal(dashes, 100, -3).intervals, []);
+  near(compile(spec, { ...context, cyclic: false }).intervals, [0, 15, 44, 56]);
 });
 
 test('degenerate input yields no pattern instead of an error', () => {

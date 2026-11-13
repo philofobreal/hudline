@@ -8,11 +8,11 @@
  * arc length; where named anchors lie. Knows nothing about the DOM,
  * rendering or time. Pure.
  *
- * Interface: `resolve(shape, width, height) → Track` and
- * `offset(track, distance) → Track`. Rings and arcs work today; frames
+ * Interface: `resolve(shape, width, height) → Track`,
+ * `offset(track, distance) → Track` and `portion(track, share) → Track`. Rings and arcs work today; frames
  * resolve to an empty track until milestone M3.
  */
-export { offset, resolve } from './track.js';
+export { offset, portion, resolve } from './track.js';
 export type { Anchor, Track } from './track.js';
 export type {
   Along,

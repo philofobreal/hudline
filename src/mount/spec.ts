@@ -19,8 +19,9 @@ export interface BandSpec {
   /** Default solid. */
   readonly pattern?: PatternSpec;
   /**
-   * Share of the band that is revealed, 0–1, counted from the track's
-   * start. Default 1. Drives both progress display and draw-on.
+   * Share of the band that is shown, 0–1, counted from the track's
+   * start. Default 1. Drives both progress display and draw-on. The
+   * pattern is laid out for the whole band and is not squeezed.
    */
   readonly value?: number;
   /** 0–1. Default 1. */
@@ -38,7 +39,11 @@ export interface BandSpec {
   readonly priority?: number;
 }
 
-/** The band parameters a state may change; changes are interpolated. */
+/**
+ * The band parameters a state may change. Numbers glide to their new
+ * values. `motion` is not merged: a state that names it replaces the
+ * band's whole motion description, and the pattern keeps its place.
+ */
 export type BandOverride = Partial<
   Pick<BandSpec, 'offset' | 'width' | 'value' | 'opacity' | 'motion'>
 >;
@@ -51,9 +56,11 @@ export interface HudSpec {
   readonly shape: ShapeSpec;
   readonly bands: readonly BandSpec[];
   /**
-   * States by name. `idle` is implied and is the spec itself. `hover`,
-   * `focus` and `active` are entered automatically from pointer and
-   * focus events; any other name is entered with `set(name)`.
+   * States by name. `idle` is implied and is the spec itself. If `enter`
+   * is defined, bands start in it and move to idle at once, which is how
+   * draw-on is described. `hover`, `focus` and `active` will be entered
+   * automatically from pointer and focus events once `attach` exists;
+   * any other name is entered with `set(name)`.
    */
   readonly states?: Readonly<Record<string, StateSpec>>;
   /**

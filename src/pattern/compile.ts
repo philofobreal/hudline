@@ -5,7 +5,7 @@ import type { PatternSpec } from './spec.js';
  * The drawn stretches of one band: a flat list of start and end arc
  * lengths (`[s0, e0, s1, e1, …]`), sorted, not overlapping, all within
  * 0 and the length the pattern was compiled for. An interval that wraps
- * around the seam of a closed track is stored as two, one ending at the
+ * around the seam of a cyclic band is stored as two, one ending at the
  * length and one starting at 0.
  */
 export interface Dashes {
@@ -21,8 +21,12 @@ export interface Dashes {
 export interface PatternContext {
   /** Arc length of the band's centreline, in CSS pixels. */
   readonly length: number;
-  /** Whether the band's end meets its start. */
-  readonly closed: boolean;
+  /**
+   * Whether the pattern must join seamlessly from the band's end to its
+   * start. True for a closed band, and for an open band whose pattern
+   * travels along it: what leaves at the end comes back in at the start.
+   */
+  readonly cyclic: boolean;
   /** Band width in CSS pixels. */
   readonly width: number;
   /** Named intervals on the band that span patterns may refer to. */
@@ -53,7 +57,7 @@ const NONE: Dashes = { intervals: [], cap: 'butt' };
  * when the band is too short for them, as each pattern kind documents.
  */
 export function compile(spec: PatternSpec, context: PatternContext): Dashes {
-  const { length, closed } = context;
+  const { length, cyclic: closed } = context;
   if (!(length > 0) || !Number.isFinite(length)) return NONE;
 
   switch (spec.kind) {
@@ -108,27 +112,6 @@ export function compile(spec: PatternSpec, context: PatternContext): Dashes {
         'butt',
       );
   }
-}
-
-/**
- * Keeps the part of a pattern that lies within the first `value` share
- * of the band. This is how a band shows progress and how it draws on.
- *
- * @param length The length the pattern was compiled for.
- * @param value Share to keep, 0–1. Values outside are clamped; a value
- *   that is not a number keeps everything.
- */
-export function reveal(dashes: Dashes, length: number, value: number): Dashes {
-  if (Number.isNaN(value) || value >= 1) return dashes;
-  const limit = Math.max(0, value) * length;
-  const intervals: number[] = [];
-  for (let i = 0; i < dashes.intervals.length; i += 2) {
-    const start = dashes.intervals[i] as number;
-    const end = dashes.intervals[i + 1] as number;
-    if (start >= limit) break;
-    intervals.push(start, Math.min(end, limit));
-  }
-  return { intervals, cap: dashes.cap };
 }
 
 function dashes(dash: number, gap: number, length: number, closed: boolean): Dashes {

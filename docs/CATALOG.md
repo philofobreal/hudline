@@ -2,7 +2,7 @@
 
 Status: milestone M0 closed. The maintainer delegated the open decisions to the agent's recommendations on 2026-11-13 (see `DECISIONS.md`, D-011 to D-016).
 
-The entries below come from the maintainer's reference images. Nine of ten are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. The rings render since M1: `npm run gallery` writes `gallery.html` with R1 to R4 at three sizes. The frames have not been rendered; they are verified in M3.
+The entries below come from the maintainer's reference images. Nine of ten are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. The rings render since M1 and move since M2: `npm run gallery` writes `gallery.html` with R1 to R4 at three sizes, playing, with buttons for the states each ring defines (`enter`, `hover`, `alert`). The frames have not been rendered; they are verified in M3.
 
 ## Rings
 
@@ -37,4 +37,7 @@ The entries below come from the maintainer's reference images. Nine of ten are w
 - Outward steps (tabs) leave the base outline. The author insets the frame by the tab's depth to keep it inside the host box, as F2 does. The track does not do this automatically.
 - Major and minor ticks stay aligned at every size only if the minor band names the major count in `multipleOf`, as R2 does. Without it the minor count drops to whatever fits.
 - Bands drop by geometry, not yet by `priority`: on a small host the inner bands go first, whatever their priority. Priority-based dropping arrives with frames in M3.
+- One `settle` time serves every transition of a spec, so draw-on is as quick as a hover change.
+- Flicker and breathing switch on and off at once when a state changes `motion`; only numbers glide.
+- `addressable` is accepted but not yet honoured: a flickering band flickers as a whole until M5.
 - Block sizes are fixed pixels, so a seeded block band changes its arrangement when the host is resized. It is stable for a given size.

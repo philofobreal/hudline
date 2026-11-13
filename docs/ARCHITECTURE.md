@@ -18,11 +18,11 @@ A ring is a track that is a circle. A frame is a track that is a closed polygon 
 
 | Module | Hides | Interface (planned) |
 |---|---|---|
-| `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track` |
-| `pattern` | Layout of each pattern kind, seam fitting, thinning on short bands, wrapping and merging of intervals | `compile(spec, context) → Dashes`, `reveal(dashes, length, value) → Dashes` |
-| `motion` | Clock handling, springs, noise, seeded randomness, state transitions | `drive(params, time) → values` |
+| `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track`, `portion(track, share) → Track` |
+| `pattern` | Layout of each pattern kind, seam fitting, thinning on short bands, wrapping and merging of intervals | `compile(spec, context) → Dashes` |
+| `motion` | Springs, noise, how travel accumulates across changes of speed, seeded randomness | `begin(target) → BandState`, `steer(state, target, time, settle) → BandState`, `sample(state, length, closed, time, out)` |
 | `surface` | How bands become SVG elements and dash arrays; later live DOM updates and canvas drawing | `svgMarkup(scene) → string` |
-| `mount` | How a spec becomes a scene (which bands fit, seed mixing); later observers, lifecycle, turning DOM events into states | the public API: `renderToString` today, `attach` in M4 |
+| `mount` | How a spec becomes a scene (which bands fit, seed mixing); later observers, lifecycle, turning DOM events into states | the public API: `createPlayer` and `renderToString` today, `attach` in M4 |
 | `catalog` | Nothing; it is data: the catalogue entries as typed specs, later the presets | `catalog` |
 
 ### Dependency rule
@@ -55,10 +55,13 @@ Each module owns the part of the spec language that describes its own decisions,
 
 ### Public API
 
-Available now:
+Available now, without a DOM (rings and arcs):
 
 ```ts
-renderToString(spec, width, height);  // standalone SVG at rest; rings and arcs
+renderToString(spec, width, height);          // standalone SVG at rest
+const player = createPlayer(spec, width, height);
+player.set('alert', time);                    // the caller supplies the time
+player.markup(time);                          // SVG at that moment
 ```
 
 Planned for M4:
@@ -74,9 +77,11 @@ hud.detach();                       // automatic when the host is removed
 
 | Trigger | Work |
 |---|---|
-| Attach, host resize | `track.resolve`, `pattern.compile`, `surface` rebuilds nodes |
-| Animation frame | `motion.drive`, `surface` writes changed attributes only |
-| State change | `motion` starts a transition; no geometry work |
+| Attach, host resize | `track.resolve`; every band's centreline and pattern |
+| Animation frame | `motion.sample` per band. A band's centreline and pattern are rebuilt only if its offset or width changed since the last frame, its shown path only if its value did |
+| State change | `motion.steer`: new transitions. A pattern is laid out again only if the change makes it start or stop travelling |
+
+A band that is only travelling or flickering costs one `sample` and a changed dash offset or opacity per frame. Bands in a transition, or breathing, rebuild their geometry each frame until they settle.
 | Host hidden, off-screen, reduced motion | The frame loop skips the element |
 
 One shared `requestAnimationFrame` loop serves all elements.
@@ -89,7 +94,9 @@ One shared `requestAnimationFrame` loop serves all elements.
 - **Band placement:** a band covers `offset` to `offset + width` from the track, toward the inside. Bands with equal offsets share their outer edge.
 - **Anchors:** `track` publishes named intervals on the track: the frame corners `tl`, `tr`, `br`, `bl` and every step that has an `id`. Span patterns refer to them by name; a span on a missing anchor draws nothing.
 - **One edge operator:** `step` displaces a stretch of an edge. A tab is a step with negative depth, a notch a short step with positive depth.
-- **Value:** a band's `value` (0–1) reveals that share of the band from the track's start. Progress and draw-on are the same parameter.
+- **Value:** a band's `value` (0–1) shows that share of the band from the track's start, by shortening the drawn path. The pattern is laid out for the whole band, so it can travel under a fixed value. Progress and draw-on are the same parameter.
+- **Travel:** a pattern's travel is a dash offset on a dash array as long as the band. A travelling pattern is laid out cyclically, also on an open band: what leaves at the end comes back in at the start.
+- **Transitions:** numeric band parameters move on a critically damped spring and stay continuous in value and speed when retargeted. A state's `motion` replaces the band's motion; travel so far is kept.
 - **Primitives:** line and circular arc. The offset of a line is a line; the offset of an arc is a concentric arc. Lengths are closed-form.
 - **Seamless patterns:** on a closed track the period is fitted to the length, `p' = L / round(L / p)`.
 - **Detail budget:** each edge has a budget (length minus corners). Details are placed by priority and dropped when they do not fit, with hysteresis so that a size near the threshold does not flicker.

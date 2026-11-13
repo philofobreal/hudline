@@ -6,10 +6,9 @@
  * bands, how intervals are wrapped, clipped and merged. Knows nothing
  * about shapes, the DOM or time. Pure.
  *
- * Interface: `compile(spec, context) → Dashes` and
- * `reveal(dashes, length, value) → Dashes`.
+ * Interface: `compile(spec, context) → Dashes`.
  */
-export { compile, reveal } from './compile.js';
+export { compile } from './compile.js';
 export type { Dashes, PatternContext } from './compile.js';
 export { fitPeriod } from './fit.js';
 export type { PatternSpec, Span } from './spec.js';

@@ -101,6 +101,33 @@ export function offset(track: Track, distance: number): Track {
   return build(arcs, track.closed, data.side);
 }
 
+/**
+ * Returns the first `share` of a track, measured by arc length from its
+ * start. This is how a band shows progress and how it draws on.
+ *
+ * @param share 0–1. One or more, or not a number, returns the track
+ *   itself; zero or less returns an empty track. The result is open.
+ */
+export function portion(track: Track, share: number): Track {
+  if (Number.isNaN(share) || share >= 1) return track;
+  const data = track as Partial<TrackData>;
+  if (!(share > 0) || data.arcs === undefined || data.side === undefined) return EMPTY;
+
+  let remaining = share * track.length;
+  const arcs: Arc[] = [];
+  for (const arc of data.arcs) {
+    const length = arc.radius * Math.abs(arc.sweep);
+    if (length <= remaining) {
+      arcs.push(arc);
+      remaining -= length;
+    } else {
+      if (remaining > 0) arcs.push({ ...arc, sweep: arc.sweep * (remaining / length) });
+      break;
+    }
+  }
+  return build(arcs, false, data.side);
+}
+
 function build(arcs: readonly Arc[], closed: boolean, side: 1 | -1): TrackData {
   let length = 0;
   let path = '';

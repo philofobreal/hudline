@@ -1,12 +1,18 @@
 /**
  * motion — values as a function of time.
  *
- * Hides: clock handling, springs, noise, seeded randomness and state
- * transitions. Never reads the wall clock or `Math.random`; time and
- * seeds are parameters, so output is reproducible. Pure.
+ * Hides: how a parameter glides to a new target and stays smooth when
+ * interrupted (springs), how flicker is generated (noise), how travel
+ * along a band accumulates across changes of speed, and the seeded
+ * random generator. Never reads the wall clock or `Math.random`; time
+ * and seeds are arguments, so output is reproducible. Pure.
  *
- * Planned interface: `drive(params, time) → values` (milestone M2).
+ * Interface: `begin(target) → BandState`, `steer(state, target, time,
+ * settle) → BandState` and `sample(state, length, closed, time, out)`,
+ * plus `travels` and `createRandom`.
  */
+export { begin, sample, steer, travels } from './band.js';
+export type { BandFrame, BandState, BandTarget } from './band.js';
 export { createRandom } from './random.js';
 export type { Random } from './random.js';
 export type { MotionSpec } from './spec.js';
