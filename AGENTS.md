@@ -47,7 +47,7 @@ If a task seems to require breaking one of these, stop and ask.
 5. **Never mutate host layout.** The library may add one absolutely positioned, pointer-transparent child and set CSS custom properties on the host. It may set `position: relative` only when the host is `static`. Nothing else.
 6. **No exceptions in normal use.** Invalid or extreme input is clamped or degrades (details that do not fit drop out). `attach` is idempotent. Removed hosts clean up automatically.
 7. **Determinism.** Same spec, same size, same seed, same time → same output.
-8. **No allocation in the per-frame path.** Geometry is rebuilt on resize only.
+8. **Frames are cheap.** A drawing at rest does no work per frame. A moving one allocates nothing but the strings it writes; geometry is rebuilt only when its inputs change.
 9. **Reduced motion.** `prefers-reduced-motion` and hidden documents stop animation.
 10. **No network, storage or telemetry** in library code.
 
@@ -90,6 +90,7 @@ npm run build      # tsc → dist/
 npm test           # build, then node --test
 npm run check      # typecheck + rules + test
 npm run gallery    # build, then write a self-contained gallery.html (not committed)
+npm run perf       # build, then write perf.html: 50 drawings, timed (not committed)
 ```
 
 Anything that changes what is drawn is not done until you have looked at the rendered gallery yourself. Tests prove numbers, not appearance.

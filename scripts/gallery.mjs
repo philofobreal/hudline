@@ -1,5 +1,5 @@
 // Writes gallery.html: every catalogue entry that can be rendered today,
-// at several sizes, playing. Self-contained: the library is inlined, so the
+// at several sizes, attached to plain elements. Self-contained: the library is inlined, so the
 // file works opened straight from disk. For looking at, not for tests.
 // Run with `npm run gallery`.
 
@@ -27,7 +27,7 @@ const FRAME_SIZES = [
 ];
 
 const cell = (id, [width, height], resizable = false) =>
-  `<figure><div class="hud${resizable ? ' resizable' : ''}" data-id="${id}" style="width:${width}px;height:${height}px"></div>` +
+  `<figure><div class="hud${resizable ? ' resizable' : ''}" data-id="${id}" tabindex="0" style="width:${width}px;height:${height}px"></div>` +
   `<figcaption>${resizable ? 'drag the corner' : `${width} × ${height}`}</figcaption></figure>`;
 
 const section = (names, sizes, resizable) =>
@@ -38,64 +38,46 @@ const section = (names, sizes, resizable) =>
     })
     .join('\n');
 
-const rows = `${section(FRAMES, FRAME_SIZES, true)}\n${section(RINGS, RING_SIZES, false)}`;
+const inUse = `<section><h2>In use · content padded by the published insets, and a value kept up to date</h2><div class="row">
+<div class="panel" data-id="F2"><strong>NAV-07</strong><span>The text keeps clear of the frame because its padding comes from the four inset properties the library sets on this element.</span></div>
+<div class="panel" data-id="F4"><strong>LINK</strong><span>Resize me by the corner. The padding follows.</span></div>
+<figure><div class="hud" id="gauge" data-id="R4" style="width:120px;height:120px"><output id="readout">70 %</output></div>
+<figcaption><input id="level" type="range" min="0" max="100" value="70" aria-label="Level"></figcaption></figure>
+</div></section>`;
 
-// The page script: a plain demo loop that asks each player for markup
-// once per frame. The library's own DOM binding (milestone M4) will
-// update attributes in place instead of replacing markup.
+const rows = `${inUse}\n${section(FRAMES, FRAME_SIZES, true)}\n${section(RINGS, RING_SIZES, false)}`;
+
+// The page script. Everything on the page is attached with the library's
+// own DOM binding; hovering a shape enters its hover state by itself.
 const page = `
-const players = [];
-let started = performance.now();
-const now = () => (performance.now() - started) / 1000;
-const sizeOf = (host) => [host.clientWidth, host.clientHeight];
-
-function build() {
-  players.length = 0;
-  started = performance.now();
-  for (const host of document.querySelectorAll('.hud')) {
-    const [width, height] = sizeOf(host);
-    players.push({ host, player: hudline.createPlayer(hudline.catalog[host.dataset.id], width, height) });
-  }
-}
+const hosts = [...document.querySelectorAll('[data-id]')];
+const huds = new Map();
+const attachAll = () => hosts.forEach((host) => huds.set(host, hudline.attach(host, hudline.catalog[host.dataset.id])));
 
 function setState(name) {
-  const time = now();
-  for (const { player } of players) player.set(name, time);
+  for (const hud of huds.values()) hud.set(name);
   for (const button of document.querySelectorAll('[data-state]')) {
     button.setAttribute('aria-pressed', String(button.dataset.state === name));
   }
 }
-
 for (const button of document.querySelectorAll('[data-state]')) {
   button.addEventListener('click', () => setState(button.dataset.state));
 }
-document.querySelector('[data-replay]').addEventListener('click', () => { build(); setState('idle'); });
-
-// The resizable hosts tell their player about every new size.
-const resizes = new ResizeObserver((entries) => {
-  for (const entry of entries) {
-    const found = players.find(({ host }) => host === entry.target);
-    if (found) found.player.resize(...sizeOf(entry.target));
-  }
-  if (still.matches) draw();
+document.querySelector('[data-replay]').addEventListener('click', () => {
+  for (const hud of huds.values()) hud.detach();
+  attachAll();
+  setState('idle');
 });
-for (const host of document.querySelectorAll('.hud.resizable')) resizes.observe(host);
 
-const still = matchMedia('(prefers-reduced-motion: reduce)');
-function draw() {
-  // With reduced motion everything is shown settled and at rest.
-  const time = still.matches ? 0 : now();
-  for (const { host, player } of players) {
-    host.innerHTML = still.matches
-      ? hudline.renderToString(hudline.catalog[host.dataset.id], ...sizeOf(host))
-      : player.markup(time);
-  }
-  if (!still.matches) requestAnimationFrame(draw);
-}
-still.addEventListener('change', draw);
+const gauge = document.querySelector('#gauge');
+const level = document.querySelector('#level');
+const readout = document.querySelector('#readout');
+level.addEventListener('input', () => {
+  readout.textContent = level.value + ' %';
+  huds.get(gauge).update({ value: { value: level.value / 100 } });
+});
 
-build();
-draw();
+attachAll();
 `;
 
 const html = `<!doctype html>
@@ -123,10 +105,16 @@ const html = `<!doctype html>
   figcaption { color: var(--muted); font-size: 11px; }
   svg { display: block; }
   .hud { position: relative; }
+  .hud:focus-visible { outline: 1px dashed var(--muted); outline-offset: 4px; }
+  .panel { width: 260px; min-height: 110px; box-sizing: border-box; resize: both; overflow: hidden; display: grid; align-content: start; gap: 6px;
+           padding: var(--hud-inset-top) var(--hud-inset-right) var(--hud-inset-bottom) var(--hud-inset-left); }
+  .panel span { color: var(--muted); }
+  #gauge { display: grid; place-items: center; }
+  input[type=range] { width: 120px; accent-color: currentColor; }
   .hud.resizable { resize: both; overflow: hidden; min-width: 16px; min-height: 16px; max-width: 100%; }
 </style>
 <h1>hudline · catalogue</h1>
-<p>Milestone M3: frames join the rings. Everything draws on when the page opens. The buttons put every shape into a state; each reacts in its own way. The last frame of each row can be resized by its bottom-right corner: details keep their pixel sizes and drop out when they no longer fit.</p>
+<p>Milestone M4: every shape here is attached to a plain element with the library's DOM binding. Point at a shape to see its hover state. The buttons put all of them into a state. The last frame of each row can be resized by its bottom-right corner: details keep their pixel sizes and drop out when they no longer fit.</p>
 <div class="bar">
   <button type="button" data-state="idle" aria-pressed="true">idle</button>
   <button type="button" data-state="hover" aria-pressed="false">hover</button>

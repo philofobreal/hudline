@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { FrameShape, StepOp } from './shape.js';
-import { holds, offset, portion, resolve } from './track.js';
+import { clearance, holds, offset, portion, resolve } from './track.js';
 
 const near = (actual: number, expected: number, tolerance = 1e-6) =>
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} ≉ ${expected}`);
@@ -211,6 +211,63 @@ test('a ring holds a band only while its inner edge stays wider than the band', 
   assert.equal(holds(ring, 30, 34), true);
   assert.equal(holds(ring, 44, 48), false);
   assert.equal(holds(ring, 45, 50), false);
+});
+
+test('a step that was left out comes back only with room to spare', () => {
+  const step: StepOp = { kind: 'step', id: 's', from: { from: 'end', offset: 80 }, to: { from: 'end', offset: 20 }, depth: 4 };
+  const shape = frame({ edges: { top: [step] } });
+  const has = (track: { anchors: Readonly<Record<string, unknown>> }) => track.anchors['s'] !== undefined;
+  // The step needs a top edge of 80.
+  assert.equal(has(resolve(shape, 80, 100)), true);
+  const without = resolve(shape, 79, 100);
+  assert.equal(has(without), false);
+  // Growing back: not at 80, not at 83, but at 84.
+  assert.equal(has(resolve(shape, 80, 100, without)), false);
+  assert.equal(has(resolve(shape, 83, 100, without)), false);
+  const back = resolve(shape, 84, 100, without);
+  assert.equal(has(back), true);
+  // Shrinking again: it stays down to the size where it truly stops fitting.
+  assert.equal(has(resolve(shape, 80, 100, back)), true);
+  assert.equal(has(resolve(shape, 79, 100, back)), false);
+});
+
+test('a band that is not shown needs room to spare before it is held', () => {
+  const ring = resolve({ kind: 'ring' }, 100, 100);
+  assert.equal(holds(ring, 20, 34), true);
+  assert.equal(holds(ring, 20, 34, 4), false);
+  assert.equal(holds(ring, 20, 30, 4), true);
+});
+
+test('clearance keeps content clear of bands, steps and corners', () => {
+  const plain = resolve(frame({ inset: 2 }), 200, 100);
+  assert.deepEqual(clearance(plain, 5), { top: 7, right: 7, bottom: 7, left: 7 });
+
+  const stepped = resolve(
+    frame({ edges: { bottom: [{ kind: 'step', from: { from: 'start', offset: 20 }, to: { from: 'end', offset: 20 }, depth: 6 }] } }),
+    200,
+    100,
+  );
+  assert.deepEqual(clearance(stepped, 1), { top: 1, right: 1, bottom: 7, left: 1 });
+
+  const cut = resolve(frame({ corners: { tl: { kind: 'chamfer', size: 20 } } }), 200, 100);
+  const cleared = clearance(cut, 2);
+  near(cleared.top, 10 + 2 / Math.SQRT2);
+  near(cleared.left, 10 + 2 / Math.SQRT2);
+  assert.equal(cleared.right, 2);
+  assert.equal(cleared.bottom, 2);
+
+  const round = resolve(frame({ corners: { kind: 'fillet', radius: 20 } }), 200, 100);
+  near(clearance(round, 0).top, 20 - 20 / Math.SQRT2);
+  near(clearance(round, 30).top, 30);
+});
+
+test('clearance of a ring is the square inside its innermost band', () => {
+  const ring = resolve({ kind: 'ring' }, 200, 100);
+  const { top, left } = clearance(ring, 10);
+  near(top, 50 - 40 / Math.SQRT2);
+  near(left, 100 - 40 / Math.SQRT2);
+  assert.deepEqual(clearance(offset(ring, 5), 0), { top: 0, right: 0, bottom: 0, left: 0 });
+  assert.deepEqual(clearance(resolve(frame(), 0, 0), 3), { top: 0, right: 0, bottom: 0, left: 0 });
 });
 
 test('a portion of a frame is open and stops part-way along a side', () => {

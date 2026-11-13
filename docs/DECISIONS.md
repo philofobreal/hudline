@@ -192,3 +192,34 @@ Known limit: a line next to a fillet that is consumed empties the track.
 Decision: `track.holds(track, from, to)` says whether a band reads as a strip on a shape: its inner edge must exist, and on shapes made of arcs alone must not curve tighter than the band is wide. `BandSpec.priority` is removed.
 Why: The ring rule of D-021 hid thin fills on low frames, where it does not apply. Band priority was accepted by the type and read by nothing, and it has no clear meaning while bands do not move to fill the room of dropped ones.
 Rejected: Keeping one rule for all shapes in `mount`; keeping an unused field.
+
+## D-031 How `attach` behaves
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `attach(host, spec)` adds one `<svg>` child over the host's padding box and returns a handle with `set`, `update` and `detach`. A static host becomes `position: relative`; nothing else of its layout is touched. `hover`, `focus` and `active` are entered automatically when the spec defines them, `active` before `focus` before `hover`, and only while the state asked for with `set` is idle. A host that leaves the document detaches itself. Attaching again replaces the spec and returns the same handle. Void elements and environments without a DOM get a handle that does nothing.
+Why: An explicit state such as an alert must not be knocked out by the pointer passing over. Self-detaching and idempotence remove two whole classes of misuse.
+Rejected: Automatic states over any requested state; throwing on void elements; a `MutationObserver` on the document to watch for removals (the resize and frame callbacks notice a disconnected host at no cost).
+
+## D-032 Hysteresis is an argument, not a state
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `track.resolve` takes the track it replaces, and `track.holds` takes a spare distance. A step or a band that is not shown comes back only once it fits with 4 px to spare; one that is shown stays until it truly stops fitting.
+Why: A host whose size hovers around a threshold made details flicker. Passing the previous result keeps `track` pure.
+Rejected: Remembering the last size inside `track` (hidden state in a pure module); snapping sizes (the outline would no longer follow the host).
+Known limit: tick, dot and segment counts still change exactly at their thresholds.
+
+## D-033 Painting in place, one loop that stops
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: A live surface keeps one path per band and writes only what changed since the last paint. All drawings share one animation loop, which runs only while some visible drawing still changes; a drawing at rest costs nothing. The player reuses its scene and caches each band's geometry until its inputs change. Invariant 8 in `AGENTS.md` is reworded to what is true: a drawing at rest does no work, and a moving one allocates only the strings it writes.
+Why: Measured in headless Chrome with fifty drawings all in their busiest state: 0.60 ms median and 2.2 ms at the 95th percentile of script time per frame. The earlier wording, no allocation at all, cannot be met by anything that writes attributes.
+Rejected: Replacing markup every frame (what the M2 and M3 galleries did); a loop that never stops.
+
+## D-034 Content insets come from geometry
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `track.clearance(track, depth)` gives how far content must stay from each side to be clear of the bands, of inward steps and of chamfers and fillets. `attach` publishes it as `--hud-inset-top`, `-right`, `-bottom`, `-left` on the host, rounded up to whole pixels, from the idle state.
+Why: Only `track` knows what a corner or a step takes. Using idle values keeps the host's padding from moving during a hover.
+Rejected: One number for all sides (wastes room, or collides with a step on one side); following animated values.
+
+## D-035 `Player.update` and `Hud.update`
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `update(bands)` changes band parameters for good, by band id; states still override them. Numbers glide.
+Why: A value shown as progress has to change while the drawing is in any state, and a state per value is not workable.
+Rejected: Re-attaching with a new spec for every value (restarts motion).

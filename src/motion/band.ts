@@ -1,6 +1,6 @@
 import { noise } from './noise.js';
 import type { MotionSpec } from './spec.js';
-import { rest, retarget, valueAt } from './spring.js';
+import { rest, retarget, settled, valueAt } from './spring.js';
 import type { Transition } from './spring.js';
 
 /** Where one band's parameters should be heading. */
@@ -88,6 +88,24 @@ export function steer(state: BandState, target: BandTarget, time: number, settle
  */
 export function travels(state: BandState, closed: boolean): boolean {
   return speed(state.motion?.drift) !== 0 || (closed && speed(state.motion?.spin) !== 0);
+}
+
+/**
+ * Whether anything about the band still changes at `time`: a pattern
+ * that travels, flicker, breathing, or a parameter on its way to its
+ * target. A band that is not moving looks the same on every later frame
+ * until it is steered again.
+ */
+export function moving(state: BandState, closed: boolean, time: number): boolean {
+  return (
+    travels(state, closed) ||
+    state.motion?.flicker !== undefined ||
+    state.motion?.breathe !== undefined ||
+    !settled(state.offset, time) ||
+    !settled(state.width, time) ||
+    !settled(state.value, time) ||
+    !settled(state.opacity, time)
+  );
 }
 
 /**

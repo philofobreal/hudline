@@ -2,38 +2,38 @@
 
 Dependency-free TypeScript library for animated, monochrome HUD-style frames and rings on existing DOM elements.
 
-**Status:** early. Frames, rings and arcs render and animate through a headless player. No DOM binding yet: `attach` is not implemented. See `docs/ROADMAP.md`.
+**Status:** early, and usable in a page: frames, rings and arcs attach to existing elements, follow their size and react to pointer, focus and state changes. Tried in Chrome only. See `docs/ROADMAP.md`.
 
 ## Idea
 
 Every shape is a **track** (lines and circular arcs), one or more **bands** along it, and a dash **pattern** on each band. Animating a shape means driving the pattern's phase and proportions, so motion always follows the outline, on straight edges, corners and circles alike.
 
-What works today, and what is planned:
-
 ```ts
-import { createPlayer, renderToString, type HudSpec } from 'hudline';
+import { attach, type HudSpec } from 'hudline';
 
 const spec: HudSpec = {
-  shape: { kind: 'ring', inset: 2 },
+  shape: { kind: 'frame', corners: { tl: { kind: 'chamfer', size: 12 } } },
   bands: [
-    { width: 1 },
-    { offset: 5, width: 8, pattern: { kind: 'segments', count: 12, gap: 4 }, motion: { spin: 20 } },
-    { offset: 17, width: 5, pattern: { kind: 'ticks', count: 60 } },
+    { id: 'outline', width: 1 },
+    { id: 'runner', offset: 3, width: 2, pattern: { kind: 'dashes', dash: 18, gap: 42 }, motion: { drift: 40 } },
   ],
+  states: {
+    hover: { bands: { outline: { width: 2 } } },
+  },
 };
 
-// Works today: a standalone SVG at rest, coloured by CSS `color`.
-const svg = renderToString(spec, 200, 200);
-
-// Works today: play it yourself; you supply the time in seconds.
-const player = createPlayer(spec, 200, 200);
-element.innerHTML = player.markup(performance.now() / 1000);
-
-// Planned for milestone M4:
-// const hud = attach(element, spec);
-// hud.set('alert');
-// hud.detach();
+const hud = attach(element, spec);   // draws at once, follows the element's size
+hud.set('alert');                    // any state the spec defines
+hud.detach();
 ```
+
+The drawing takes its colour from the element's CSS `color`, never changes the element's layout, and publishes the room content needs as `--hud-inset-top`, `-right`, `-bottom` and `-left`:
+
+```css
+.panel { padding: var(--hud-inset-top) var(--hud-inset-right) var(--hud-inset-bottom) var(--hud-inset-left); }
+```
+
+Without a DOM, `renderToString(spec, width, height)` gives a still SVG and `createPlayer` plays a spec against a clock you supply.
 
 ## Development
 
@@ -41,6 +41,7 @@ element.innerHTML = player.markup(performance.now() / 1000);
 npm install
 npm run check
 npm run gallery   # writes a self-contained, animated gallery.html
+npm run perf      # writes perf.html: 50 drawings with a frame timer
 ```
 
 Requires Node 22 or newer.

@@ -18,11 +18,11 @@ A ring is a track that is a circle. A frame is a track that is a closed polygon 
 
 | Module | Hides | Interface (planned) |
 |---|---|---|
-| `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track`, `portion(track, share) → Track`, `holds(track, from, to) → boolean` |
+| `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track`, `portion(track, share) → Track`, `holds(track, from, to) → boolean`, `clearance(track, depth) → Insets` |
 | `pattern` | Layout of each pattern kind, seam fitting, thinning on short bands, wrapping and merging of intervals | `compile(spec, context) → Dashes` |
-| `motion` | Springs, noise, how travel accumulates across changes of speed, seeded randomness | `begin(target) → BandState`, `steer(state, target, time, settle) → BandState`, `sample(state, length, closed, time, out)` |
-| `surface` | How bands become SVG elements and dash arrays; later live DOM updates and canvas drawing | `svgMarkup(scene) → string` |
-| `mount` | How a spec becomes a scene (which bands fit, seed mixing); later observers, lifecycle, turning DOM events into states | the public API: `createPlayer` and `renderToString` today, `attach` in M4 |
+| `motion` | Springs, noise, how travel accumulates across changes of speed, seeded randomness | `begin(target) → BandState`, `steer(state, target, time, settle) → BandState`, `sample(state, length, closed, time, out)`, `moving(state, closed, time)` |
+| `surface` | How bands become SVG elements and dash arrays; which elements a live drawing has and what is written on each paint; later canvas drawing | `svgMarkup(scene) → string`, `createSvgSurface(host) → SvgSurface` |
+| `mount` | How a spec is played (which bands fit, seed mixing, states to targets, what is recomputed when); observers, the shared loop, lifecycle, turning DOM events into states | the public API: `attach`, `createPlayer`, `renderToString` |
 | `catalog` | Nothing; it is data: the catalogue entries as typed specs, later the presets | `catalog` |
 
 ### Dependency rule
@@ -55,36 +55,32 @@ Each module owns the part of the spec language that describes its own decisions,
 
 ### Public API
 
-Available now, without a DOM:
-
 ```ts
-renderToString(spec, width, height);          // standalone SVG at rest; rings, arcs and frames
+const hud = attach(element, spec);            // idempotent; draws at once
+hud.set('alert');                             // state change
+hud.update({ value: { value: 0.7 } });        // lasting change to a band, by id
+hud.detach();                                 // automatic when the host leaves the document
+
+renderToString(spec, width, height);          // standalone SVG at rest, no DOM
 const player = createPlayer(spec, width, height);
 player.set('alert', time);                    // the caller supplies the time
 player.markup(time);                          // SVG at that moment
-```
-
-Planned for M4:
-
-```ts
-const hud = attach(element, spec);  // idempotent
-hud.set('alert');                   // state change
-hud.update({ value: 0.7 });         // parameter change
-hud.detach();                       // automatic when the host is removed
 ```
 
 ## 3. What runs when
 
 | Trigger | Work |
 |---|---|
-| Attach, host resize | `track.resolve`; every band's centreline and pattern |
-| Animation frame | `motion.sample` per band. A band's centreline and pattern are rebuilt only if its offset or width changed since the last frame, its shown path only if its value did |
-| State change | `motion.steer`: new transitions. A pattern is laid out again only if the change makes it start or stop travelling |
+| Attach | First paint at once, in the same task |
+| Host resize | `track.resolve` with the previous track; band geometry is rebuilt on the next frame; insets are published |
+| Animation frame | For each visible drawing that still changes: `motion.sample` per band, then a paint that writes only what differs |
+| State change, `update` | `motion.steer`: new transitions. A pattern is laid out again only if the change makes it start or stop travelling |
+| Host out of view, page hidden | Nothing |
+| Reduced motion | States change at once, patterns stand still, nothing animates |
 
-A band that is only travelling or flickering costs one `sample` and a changed dash offset or opacity per frame. Bands in a transition, or breathing, rebuild their geometry each frame until they settle.
-| Host hidden, off-screen, reduced motion | The frame loop skips the element |
+One `requestAnimationFrame` loop serves all drawings. It runs only while some visible drawing still changes and stops by itself.
 
-One shared `requestAnimationFrame` loop serves all elements.
+A band that only travels or flickers costs one `sample` and one changed attribute per frame. A band in a transition, or breathing, rebuilds its geometry each frame until it settles. A drawing at rest costs nothing.
 
 ## 4. Geometry rules
 
@@ -109,18 +105,20 @@ One shared `requestAnimationFrame` loop serves all elements.
 
 ## 5. DOM contract
 
-- The host receives one child `<svg>`: `position: absolute; inset: 0; pointer-events: none; overflow: visible`.
-- The host's `position` is set to `relative` only if it is `static`.
-- The library publishes the safe content margin as `--hud-inset-top`, `--hud-inset-right`, `--hud-inset-bottom`, `--hud-inset-left`. Using them is the author's choice.
+- The host receives one child `<svg>`: `position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none`, with `aria-hidden="true"`. It covers the host's padding box.
+- The host's `position` is set to `relative` only if it is `static`, and restored on detach.
+- The room content needs is published on the host as `--hud-inset-top`, `--hud-inset-right`, `--hud-inset-bottom`, `--hud-inset-left`, in whole pixels, from the idle state. Using them is the author's choice.
 - Colour comes from `currentColor`.
-- Because the child is out of flow, observing the host's size cannot feed back into layout.
+- Because the child is out of flow and the padding box is what is measured, padding driven by the inset properties cannot feed back into the drawing's size.
+- Listeners on the host: `pointerenter`, `pointerleave`, `pointerdown`, `pointerup`, `pointercancel`, `focusin`, `focusout`, all passive. Everything is removed on detach.
+- Void elements (`img`, `input` and the like) are not supported: `attach` returns a handle that does nothing.
 
 ## 6. Addressable bands
 
 A dashed stroke cannot address its segments one by one. A band that needs per-segment flicker or per-segment width is marked addressable and is rendered as separate elements. This is opt-in because it costs nodes.
 
-## 7. Performance budget
+## 7. Performance
 
-- At most 50 animated elements per page.
-- Per-frame script time for 50 elements: target under 2 ms on a mid-range laptop. This is a target to be measured in M4, not a verified figure.
-- No per-frame allocation in `motion` or `surface`.
+- Designed for at most 50 animated drawings per page.
+- Target: under 2 ms of script time per frame for 50 drawings. Measured in headless Chrome with all 50 in their busiest state: 0.60 ms median, 2.2 ms at the 95th percentile. See the roadmap for what that figure does and does not cover.
+- A drawing at rest does no work per frame. A moving one allocates nothing but the strings it writes to attributes.

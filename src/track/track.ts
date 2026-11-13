@@ -1,4 +1,5 @@
 import { layoutFrame } from './frame.js';
+import type { FrameInfo } from './frame.js';
 import type { ShapeSpec } from './shape.js';
 
 /** A named interval on a track, as arc lengths from the track's start. */
@@ -77,12 +78,27 @@ export interface AnchorRef {
   readonly after: number;
 }
 
+/** Distances from the four sides of the host box. */
+export interface Insets {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+/** What a resolved shape remembers about itself, beyond its pieces. */
+type Layout =
+  | { readonly kind: 'frame'; readonly info: FrameInfo }
+  | { readonly kind: 'round'; readonly radius: number; readonly width: number; readonly height: number };
+
 /** What this module keeps on a track beyond the public fields. */
 interface TrackData extends Track {
   readonly pieces: readonly Piece[];
   /** Which side of the direction of travel is the inside: 1 right, −1 left. */
   readonly side: 1 | -1;
   readonly refs: Readonly<Record<string, AnchorRef>>;
+  /** Present on tracks that `resolve` returned, not on ones derived from them. */
+  readonly layout?: Layout;
 }
 
 const TAU = Math.PI * 2;
@@ -103,16 +119,26 @@ const EMPTY: TrackData = {
  * @param shape What to draw.
  * @param width Host width in CSS pixels.
  * @param height Host height in CSS pixels.
+ * @param previous The track this one replaces after a resize, if any.
+ *   Details it showed stay as long as they fit; details it had left out
+ *   come back only once they fit with a few pixels to spare, so that a
+ *   size hovering around a threshold does not make them flicker.
  * @returns The track, or an empty track when the size is not positive
  *   and finite or the shape does not fit (a ring radius of zero or less,
  *   a frame whose inset leaves no box).
  */
-export function resolve(shape: ShapeSpec, width: number, height: number): Track {
+export function resolve(shape: ShapeSpec, width: number, height: number, previous?: Track): Track {
   if (!(width > 0 && height > 0) || !Number.isFinite(width + height)) return EMPTY;
 
   if (shape.kind === 'frame') {
-    const { pieces, refs } = layoutFrame(shape, width, height);
-    return pieces.length < 3 ? EMPTY : build(pieces, true, 1, refs);
+    const before = (previous as Partial<TrackData> | undefined)?.layout;
+    const { pieces, refs, info } = layoutFrame(
+      shape,
+      width,
+      height,
+      before?.kind === 'frame' ? before.info : undefined,
+    );
+    return pieces.length < 3 ? EMPTY : build(pieces, true, 1, refs, { kind: 'frame', info });
   }
 
   const inset = finiteOr(shape.inset, 0);
@@ -120,11 +146,14 @@ export function resolve(shape: ShapeSpec, width: number, height: number): Track 
   if (!(radius > 0)) return EMPTY;
   const circle = { kind: 'arc', id: 0, cx: width / 2, cy: height / 2, radius } as const;
 
-  if (shape.kind === 'ring') return build([{ ...circle, start: 0, sweep: TAU }], true, 1, {});
+  const round: Layout = { kind: 'round', radius, width, height };
+  if (shape.kind === 'ring') {
+    return build([{ ...circle, start: 0, sweep: TAU }], true, 1, {}, round);
+  }
   const sweep = clamp(finiteOr(shape.sweep, 0), -360, 360) * (Math.PI / 180);
   if (sweep === 0) return EMPTY;
   const start = finiteOr(shape.start, 0) * (Math.PI / 180);
-  return build([{ ...circle, start, sweep }], false, sweep > 0 ? 1 : -1, {});
+  return build([{ ...circle, start, sweep }], false, sweep > 0 ? 1 : -1, {}, round);
 }
 
 /**
@@ -159,13 +188,60 @@ export function offset(track: Track, distance: number): Track {
  * a shape made of arcs alone, when its inner edge would curve tighter
  * than the band is wide: that close to the centre a band clots into a
  * blob. A host that is too small for a band is how this usually arises.
+ *
+ * @param spare Extra room, in pixels, the band must leave. Callers pass
+ *   it for a band that is not shown at the moment, so that a band does
+ *   not flicker while the host's size hovers around the point where it
+ *   starts to fit.
  */
-export function holds(track: Track, from: number, to: number): boolean {
-  const inner = offset(track, Math.max(from, to)) as Partial<TrackData>;
+export function holds(track: Track, from: number, to: number, spare = 0): boolean {
+  const inner = offset(track, Math.max(from, to) + spare) as Partial<TrackData>;
   if (inner.pieces === undefined || inner.pieces.length === 0) return false;
-  const width = Math.abs(to - from);
+  const width = Math.abs(to - from) + spare;
   const round = inner.pieces.every((piece) => piece.kind === 'arc');
   return !round || inner.pieces.every((piece) => piece.kind !== 'arc' || piece.radius > width);
+}
+
+/**
+ * How far from each side of the host box content must stay to be clear
+ * of a shape whose bands reach `depth` pixels inward from its track.
+ *
+ * For a frame this accounts for the frame's own inset, inward steps on
+ * each side, and corners: a rectangle with these insets does not touch a
+ * chamfer or a fillet. For a ring or an arc it is the largest rectangle
+ * with the host's centre that fits inside the innermost band.
+ *
+ * @returns Zeros for an empty track or one that `resolve` did not return.
+ */
+export function clearance(track: Track, depth: number): Insets {
+  const layout = (track as Partial<TrackData>).layout;
+  const reach = Math.max(0, finiteOr(depth, 0));
+  if (layout === undefined) return { top: 0, right: 0, bottom: 0, left: 0 };
+
+  if (layout.kind === 'round') {
+    const half = Math.max(0, layout.radius - reach) / Math.SQRT2;
+    const x = Math.max(0, layout.width / 2 - half);
+    const y = Math.max(0, layout.height / 2 - half);
+    return { top: y, right: x, bottom: y, left: x };
+  }
+
+  const { info } = layout;
+  // What a corner asks of the two sides that meet in it, so that the
+  // corner of the content box stays inside the innermost band there.
+  const corner = (name: 'tl' | 'tr' | 'br' | 'bl'): number => {
+    const size = info.extent[name];
+    if (info.corner[name] === 'chamfer') return size / 2 + reach / Math.SQRT2;
+    if (info.corner[name] === 'fillet' && size > reach) return size - (size - reach) / Math.SQRT2;
+    return reach;
+  };
+  const side = (edge: 'top' | 'right' | 'bottom' | 'left', a: 'tl' | 'tr' | 'br' | 'bl', b: typeof a) =>
+    info.inset + Math.max(reach + info.stepDepth[edge], corner(a), corner(b));
+  return {
+    top: side('top', 'tl', 'tr'),
+    right: side('right', 'tr', 'br'),
+    bottom: side('bottom', 'br', 'bl'),
+    left: side('left', 'bl', 'tl'),
+  };
 }
 
 /**
@@ -211,6 +287,7 @@ function build(
   closed: boolean,
   side: 1 | -1,
   refs: Readonly<Record<string, AnchorRef>>,
+  layout?: Layout,
 ): TrackData {
   // Where each surviving piece lies along the track.
   const spans = new Map<number, Anchor>();
@@ -254,7 +331,9 @@ function build(
     }
     anchors[name] = { start: at, end: at };
   }
-  return { closed, length, path, anchors, pieces, side, refs };
+  return layout === undefined
+    ? { closed, length, path, anchors, pieces, side, refs }
+    : { closed, length, path, anchors, pieces, side, refs, layout };
 }
 
 /** One piece while a parallel track is being worked out. */

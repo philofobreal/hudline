@@ -2,7 +2,7 @@
 
 Status: milestone M0 closed. The maintainer delegated the open decisions to the agent's recommendations on 2026-11-13 (see `DECISIONS.md`, D-011 to D-016).
 
-The entries below come from the maintainer's reference images. Nine of ten are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. All nine render and move: `npm run gallery` writes `gallery.html` with the frames at three sizes plus one that can be resized by hand, and the rings at three sizes, with buttons for the states every entry defines (`enter`, `hover`, `alert`).
+The entries below come from the maintainer's reference images. Nine of ten are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. All nine render and move: `npm run gallery` writes `gallery.html`, in which every entry is attached to a plain element with `attach`: the frames at three sizes plus one that can be resized by hand, the rings at three sizes, two panels whose padding comes from the published insets, and a gauge driven by `update`. Pointing at a shape enters its `hover` state; buttons set `alert` and replay `enter`.
 
 ## Rings
 
@@ -37,7 +37,7 @@ The entries below come from the maintainer's reference images. Nine of ten are w
 - Outward steps (tabs) leave the base outline. The author insets the frame by the tab's depth to keep it inside the host box, as F2 does. The track does not do this automatically.
 - Major and minor ticks stay aligned at every size only if the minor band names the major count in `multipleOf`, as R2 does. Without it the minor count drops to whatever fits.
 - Bands drop when they no longer fit their shape; there is no band priority. Steps have priority, and it decides only between steps that overlap on one edge.
-- Details appear and disappear exactly at their threshold size; there is no hysteresis yet.
+- Steps and bands that were left out come back only with 4 px to spare. Tick, dot and segment counts still change exactly at their thresholds.
 - A filleted frame whose straight sides are consumed by a deep offset loses that band entirely.
 - Flicker and breathing switch on and off at once when a state changes `motion`; only numbers glide.
 - `addressable` is accepted but not yet honoured: a flickering band flickers as a whole until M5.

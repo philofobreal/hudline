@@ -1,6 +1,26 @@
 import type { Along, Corner, CornerOp, Edge, FrameShape, StepOp } from './shape.js';
 import type { AnchorRef, Arc, Line, Piece } from './track.js';
 
+/** What a laid-out frame remembers about how it was laid out. */
+export interface FrameInfo {
+  /** Distance of the outline from the host box. */
+  readonly inset: number;
+  /** How much of each adjoining edge every corner takes, after fitting. */
+  readonly extent: Readonly<Record<Corner, number>>;
+  readonly corner: Readonly<Record<Corner, CornerOp['kind']>>;
+  /** The deepest inward step placed on each edge; 0 if none. */
+  readonly stepDepth: Readonly<Record<Edge, number>>;
+  /** The steps that were placed, as `edge:index`. */
+  readonly placed: ReadonlySet<string>;
+}
+
+/**
+ * A step that was not there on the previous layout needs this much room
+ * to spare before it appears. Without it, a host whose size hovers
+ * around the point where a step starts to fit would show it flickering.
+ */
+const HYSTERESIS = 4;
+
 /**
  * Lays a frame out as lines and arcs for a host of the given size.
  *
@@ -9,21 +29,36 @@ import type { AnchorRef, Arc, Line, Piece } from './track.js';
  * not fit their edge, or that would overlap a step of higher priority,
  * are left out.
  *
+ * @param previous The layout this one replaces, if any. Steps it had
+ *   placed stay as long as they fit; steps it had left out come back
+ *   only once they fit with room to spare.
  * @returns The pieces in order of travel, starting in the middle of the
- *   first straight run of the top edge, and where the anchors lie. Fewer
- *   than three pieces means the frame does not fit the host at all.
+ *   first straight run of the top edge, where the anchors lie, and what
+ *   to remember. Fewer than three pieces means the frame does not fit
+ *   the host at all.
  */
 export function layoutFrame(
   shape: FrameShape,
   width: number,
   height: number,
-): { pieces: Piece[]; refs: Record<string, AnchorRef> } {
+  previous?: FrameInfo,
+): { pieces: Piece[]; refs: Record<string, AnchorRef>; info: FrameInfo } {
   const inset = finiteOr(shape.inset, 0);
   const left = inset;
   const top = inset;
   const boxWidth = width - inset * 2;
   const boxHeight = height - inset * 2;
-  if (!(boxWidth > 0 && boxHeight > 0)) return { pieces: [], refs: {} };
+  const placedKeys = new Set<string>();
+  const stepDepth = { top: 0, right: 0, bottom: 0, left: 0 };
+  if (!(boxWidth > 0 && boxHeight > 0)) {
+    const none = { tl: 0, tr: 0, br: 0, bl: 0 };
+    const sharp = { tl: 'sharp', tr: 'sharp', br: 'sharp', bl: 'sharp' } as const;
+    return {
+      pieces: [],
+      refs: {},
+      info: { inset, extent: none, corner: sharp, stepDepth, placed: placedKeys },
+    };
+  }
 
   const ops = cornerOps(shape.corners);
   const extent = fitCorners(ops, boxWidth, boxHeight);
@@ -59,7 +94,10 @@ export function layoutFrame(
     const runStart = extent[edge.from];
     const runEnd = edge.length - extent[edge.to];
 
-    for (const step of placeSteps(shape.edges?.[edge.name] ?? [], edge, runStart, runEnd, maxDepth)) {
+    const steps = placeSteps(shape.edges?.[edge.name] ?? [], edge, runStart, runEnd, maxDepth, previous);
+    for (const step of steps) {
+      placedKeys.add(step.key);
+      stepDepth[edge.name] = Math.max(stepDepth[edge.name], step.depth);
       const rise = pointOn(edge, step.start, 0);
       lineTo(rise.x, rise.y);
       const up = pointOn(edge, step.start + step.ramp, step.depth);
@@ -114,7 +152,17 @@ export function layoutFrame(
       after: anchor.after === undefined ? -1 : (ids.get(anchor.after) as number),
     };
   }
-  return { pieces: drawn.map((piece, id) => ({ ...piece, id })), refs };
+  return {
+    pieces: drawn.map((piece, id) => ({ ...piece, id })),
+    refs,
+    info: {
+      inset,
+      extent,
+      corner: { tl: ops.tl.kind, tr: ops.tr.kind, br: ops.br.kind, bl: ops.bl.kind },
+      stepDepth,
+      placed: placedKeys,
+    },
+  };
 }
 
 /** One side of the box, in the direction the outline travels along it. */
@@ -136,6 +184,8 @@ interface Side {
 
 /** A step that fits, in distances of travel along its side. */
 interface PlacedStep {
+  /** `edge:index`, which identifies the step across layouts. */
+  readonly key: string;
   readonly id: string | undefined;
   readonly start: number;
   readonly end: number;
@@ -214,6 +264,7 @@ function placeSteps(
   runStart: number,
   runEnd: number,
   maxDepth: number,
+  previous: FrameInfo | undefined,
 ): PlacedStep[] {
   // The straight run in reading direction, where authors measure.
   const readStart = side.reversed ? side.length - runEnd : runStart;
@@ -225,7 +276,11 @@ function placeSteps(
     const low = Math.min(a, b);
     const high = Math.max(a, b);
     const depth = finiteOr(step.depth, 0);
+    const key = `${side.name}:${order}`;
     return {
+      key,
+      // Room to spare is asked only of steps that are coming back.
+      spare: previous === undefined || previous.placed.has(key) ? 0 : HYSTERESIS,
       id: step.id,
       start: side.reversed ? side.length - high : low,
       end: side.reversed ? side.length - low : high,
@@ -242,10 +297,10 @@ function placeSteps(
     const fits =
       step.depth !== 0 &&
       step.depth < maxDepth &&
-      step.start >= runStart - 1e-9 &&
-      step.end <= runEnd + 1e-9 &&
+      step.start >= runStart + step.spare - 1e-9 &&
+      step.end <= runEnd - step.spare + 1e-9 &&
       // Both ramps and at least a pixel of flat part.
-      step.end - step.start >= step.ramp * 2 + 1 &&
+      step.end - step.start >= step.ramp * 2 + 1 + step.spare &&
       placed.every((other) => step.end <= other.start || step.start >= other.end);
     if (fits) placed.push(step);
   }

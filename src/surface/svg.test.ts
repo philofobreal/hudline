@@ -5,6 +5,7 @@ import type { Layer } from './svg.js';
 
 const track = { closed: true, length: 100, path: 'M0 0A1 1 0 0 1 2 0', anchors: {} };
 const layer = (intervals: readonly number[], extra: Partial<Layer> = {}): Layer => ({
+  band: 0,
   track,
   width: 4,
   dashes: { intervals, cap: 'butt' },

@@ -23,7 +23,8 @@
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test \"dist/**/*.test.js\"",
     "check": "npm run typecheck && npm run rules && npm test",
-    "gallery": "npm run build && node scripts/gallery.mjs"
+    "gallery": "npm run build && node scripts/gallery.mjs",
+    "perf": "npm run build && node scripts/perf.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

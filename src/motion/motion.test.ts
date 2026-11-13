@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { begin, sample, steer, travels } from './band.js';
+import { begin, moving, sample, steer, travels } from './band.js';
 import type { BandFrame, BandTarget } from './band.js';
 import { noise } from './noise.js';
-import { rest, retarget, valueAt } from './spring.js';
+import { rest, retarget, settled, valueAt } from './spring.js';
 
 const near = (actual: number, expected: number, tolerance = 1e-9) =>
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} ≉ ${expected}`);
@@ -48,6 +48,27 @@ test('a settle time of zero or nonsense arrives at once', () => {
   for (const settle of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
     assert.equal(valueAt(retarget(rest(0), 7, 1, settle), 1), 7);
   }
+});
+
+test('a transition reports when it has arrived', () => {
+  assert.equal(settled(rest(3), 0), true);
+  const moving = retarget(rest(0), 10, 1, 0.5);
+  assert.equal(settled(moving, 1.2), false);
+  assert.equal(settled(moving, 1.9), false);
+  assert.equal(settled(moving, 2.1), true);
+  assert.equal(settled(retarget(rest(4), 4, 1, 0.5), 1), true);
+  assert.equal(settled(retarget(rest(0), 7, 1, 0), 1), true);
+});
+
+test('a band is moving while it travels, flickers, breathes or is in transition', () => {
+  assert.equal(moving(begin(idle), true, 0), false);
+  assert.equal(moving(begin({ ...idle, motion: { spin: 10 } }), true, 0), true);
+  assert.equal(moving(begin({ ...idle, motion: { spin: 10 } }), false, 0), false);
+  assert.equal(moving(begin({ ...idle, motion: { flicker: { seed: 1, rate: 1, depth: 1 } } }), true, 0), true);
+  assert.equal(moving(begin({ ...idle, motion: { breathe: { period: 1, amount: 1 } } }), true, 0), true);
+  const steered = steer(begin(idle), { ...idle, width: 9 }, 2, 0.5);
+  assert.equal(moving(steered, true, 2.1), true);
+  assert.equal(moving(steered, true, 4), false);
 });
 
 test('noise is repeatable, bounded, smooth and differs by seed', () => {

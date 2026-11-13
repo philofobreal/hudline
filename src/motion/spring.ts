@@ -29,7 +29,9 @@ export function rest(value: number): Transition {
 
 /** The value at `time` (seconds). Before `start` it is the starting value. */
 export function valueAt(transition: Transition, time: number): number {
-  if (!(transition.rate > 0)) return transition.to;
+  // Once settled the value is the target exactly, so that the last frame
+  // of a transition shows the target and not a hair beside it.
+  if (settled(transition, time)) return transition.to;
   const elapsed = Math.max(0, time - transition.start);
   const distance = transition.from - transition.to;
   const drive = transition.velocity + transition.rate * distance;
@@ -58,6 +60,16 @@ export function retarget(
     start: time,
     rate,
   };
+}
+
+/**
+ * Whether the value has arrived, to well below anything visible: twice
+ * the settle time after its start, or at once if it never had to move.
+ */
+export function settled(transition: Transition, time: number): boolean {
+  if (!(transition.rate > 0)) return true;
+  if (transition.from === transition.to && transition.velocity === 0) return true;
+  return (time - transition.start) * transition.rate > SETTLE_FACTOR * 2;
 }
 
 function velocityAt(transition: Transition, time: number): number {
