@@ -1,5 +1,6 @@
 import type { Dashes } from '../pattern/index.js';
 import type { Track } from '../track/index.js';
+import { dashLengths, hatchTravel, partsOf, travelOf, visible } from './dash.js';
 
 /**
  * Diagonal stripes instead of a solid band. Lengths are CSS pixels,
@@ -377,68 +378,15 @@ export function createSvgSurface(host: Element): SvgSurface {
   };
 }
 
-function visible(layer: Layer): boolean {
-  return (
-    layer.track.length > 0 &&
-    layer.width > 0 &&
-    layer.opacity > 0 &&
-    layer.dashes.intervals.length > 0
-  );
-}
-
-/**
- * Expresses intervals as a dash array, or `undefined` when they cover
- * the whole pattern length and no dashing is needed. The array
- * alternates dash and gap and its sum equals the pattern length, so the
- * pattern never repeats within the path; the gap after the last dash
- * runs on to the first dash.
- */
+/** `dashLengths` as the text of a `stroke-dasharray` attribute. */
 function dashArray(intervals: readonly number[], length: number): string | undefined {
-  const first = intervals[0] as number;
-  if (intervals.length === 2 && first <= 0 && (intervals[1] as number) >= length) return undefined;
-
-  let array = '';
-  for (let i = 0; i < intervals.length; i += 2) {
-    const start = intervals[i] as number;
-    const end = intervals[i + 1] as number;
-    const next = i + 2 < intervals.length ? (intervals[i + 2] as number) : length + first;
-    array += `${i === 0 ? '' : ' '}${format(end - start)} ${format(next - end)}`;
-  }
-  return array;
-}
-
-/**
- * The parts of a pattern as a flat list of start and length. Where the
- * first interval starts at 0 and the last ends at the pattern length,
- * the two are one interval that crosses the seam, and one part.
- */
-function partsOf(intervals: readonly number[], length: number): number[] {
-  const parts: number[] = [];
-  for (let i = 0; i < intervals.length; i += 2) {
-    parts.push(intervals[i] as number, (intervals[i + 1] as number) - (intervals[i] as number));
-  }
-  const last = parts.length - 2;
-  if (last >= 2 && parts[0] === 0 && (parts[last] as number) + (parts[last + 1] as number) >= length) {
-    parts[last + 1] = (parts[last + 1] as number) + (parts[1] as number);
-    parts.splice(0, 2);
-  }
-  return parts;
+  return dashLengths(intervals, length)?.map(format).join(' ');
 }
 
 /** A dash array that shows one part and nothing else of the pattern. */
 function partArray(partLength: number, patternLength: number): string | undefined {
   if (partLength >= patternLength) return undefined;
   return `${format(partLength)} ${format(patternLength - partLength)}`;
-}
-
-/**
- * How far the pattern has travelled, within one pattern length. Because
- * a dash array is as long as the band, what leaves at the end comes back
- * in at the start.
- */
-function travelOf(layer: Layer): number {
-  const { phase, patternLength: length } = layer;
-  return Number.isFinite(phase) && length > 0 ? phase - Math.floor(phase / length) * length : 0;
 }
 
 function dashAttributes(array: string | undefined, shift: number): string {
@@ -460,8 +408,7 @@ function hatchKey(hatch: Hatch): string {
  * themselves there, and the whole pattern is then turned to its angle.
  */
 function hatchTransform(hatch: Hatch): string {
-  const period = hatch.stripe + hatch.gap;
-  const moved = period > 0 ? hatch.shift - Math.floor(hatch.shift / period) * period : 0;
+  const moved = hatchTravel(hatch.shift, hatch.stripe + hatch.gap);
   return `rotate(${format(hatch.angle)}) translate(${format(moved)} 0)`;
 }
 

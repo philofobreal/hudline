@@ -273,3 +273,17 @@ Known limit: the fill is as long as the flat part of its own centreline, which g
 Decision: The catalogue is offered as `presets`, keyed by readable names (`frame-tabbed`, `ring-scale`, …). Presets are fixed, plain data; to vary one, spread it into a spec of your own. `watch(specs, root?)` draws on every element with `data-hud="name"`, follows `data-hud-state`, and keeps up as elements and attributes come, change and go. It takes the specs as an argument: there is no global registry. The export `catalog`, keyed by document ids, is no longer public.
 Why: Fixed data needs no parameter language and cannot drift from what the tests render. A registry passed in is visible at the call, works with several sets on one page, and keeps `mount` from importing the catalogue.
 Rejected: Parameterised preset functions (a second API to learn, for what a spread does); a global `define(name, spec)` (hidden state); two public exports of the same drawings.
+
+## D-044 Canvas draws scenes; the player is the shared engine
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `drawScene(context, scene, { x, y, color })` draws on a 2D canvas what the SVG surface shows for the same scene. A canvas user creates a `Player`, supplies the time, and draws its scene each frame; clearing, scaling for the pixel ratio and the loop stay with the caller. Hatch is a canvas pattern built like the SVG one. There is no canvas counterpart of `attach`.
+Why: The brief asked for the same designs on DOM and canvas. A canvas belongs to a game or a visualisation with its own loop and its own layout, so the useful unit is "draw this drawing here, now", not "manage this element".
+Rejected: A canvas that the library owns and resizes (takes over what the host application already does); a second geometry or motion path for canvas (parity would have to be earned twice).
+Parity: the browser self-test renders every preset both ways at 3× and compares pixels. In Chrome, no pixel differed beyond the antialiasing tolerance; a deliberate shift of one pixel makes 30 to 70 percent differ, so the comparison is sensitive.
+
+## D-045 A motion check, and what it cannot see
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `npm run motion` plays every preset through its transitions, rasterises each frame with librsvg and reports frames that change several times more than both neighbours. It is a development aid and not part of `npm run check`.
+Why: Three defects in a row were found by the maintainer watching motion that the agent had only looked at in stills.
+Limit, stated plainly: it finds gross jumps only. Run against the code as it was before D-042, it does not find the jumping notches at the ends of the tab's fill: they are a few pixels within a frame that changes by hundreds. Small local artefacts still need eyes.
+Rejected: Making it part of the check (it needs a system tool and half a minute); claiming more for it than it does.

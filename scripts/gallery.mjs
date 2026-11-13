@@ -52,17 +52,54 @@ const inUse = `<section><h2>In use · content padded by the published insets, an
 <figcaption><input id="level" type="range" min="0" max="100" value="70" aria-label="Level"></figcaption></figure>
 </div></section>`;
 
-const rows = `${inUse}\n${section(FRAMES, FRAME_SIZES, true)}\n${section(RINGS, RING_SIZES, false)}`;
+const onCanvas = `<section><h2>On a canvas · the same presets drawn with <code class="plain">drawScene</code> in one 2D context</h2>
+<canvas id="board" width="640" height="150" style="width:640px;height:150px;max-width:100%"></canvas></section>`;
+
+const rows = `${inUse}\n${onCanvas}\n${section(FRAMES, FRAME_SIZES, true)}\n${section(RINGS, RING_SIZES, false)}`;
 
 // The page script. Nothing here attaches anything by hand: the elements
-// ask in markup and one watch draws on them.
+// ask in markup and one watch draws on them. The canvas is the one
+// place with a loop of its own, as a game would have.
 const page = `
-const { presets, watch, attach } = hudline;
+const { presets, watch, attach, createPlayer, drawScene } = hudline;
+
+// The canvas: players with a clock of our own, drawn into one context.
+const canvas = document.querySelector('#board');
+const context = canvas.getContext('2d');
+const ratio = window.devicePixelRatio || 1;
+canvas.width = 640 * ratio;
+canvas.height = 150 * ratio;
+let started = performance.now();
+const clock = () => (performance.now() - started) / 1000;
+const placed = [
+  ['frame-tabbed', 0, 20, 200, 110],
+  ['ring-blocks', 225, 5, 140, 140],
+  ['frame-hatched', 390, 20, 130, 110],
+  ['ring-scale', 540, 25, 100, 100],
+];
+let board = [];
+const deal = () => {
+  started = performance.now();
+  board = placed.map(([name, x, y, width, height]) => ({ x, y, player: createPlayer(presets[name], width, height) }));
+};
+deal();
+const still = matchMedia('(prefers-reduced-motion: reduce)');
+function drawBoard() {
+  const time = clock();
+  context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  context.clearRect(0, 0, 640, 150);
+  const color = getComputedStyle(canvas).color;
+  for (const { x, y, player } of board) drawScene(context, player.scene(time, still.matches), { x, y, color });
+  requestAnimationFrame(drawBoard);
+}
+drawBoard();
+
 let watching = watch(presets);
 const asking = () => document.querySelectorAll('[data-hud]');
 
 function setState(name) {
   for (const element of asking()) element.dataset.hudState = name;
+  board.forEach(({ player }) => player.set(name, clock()));
   for (const button of document.querySelectorAll('[data-state]')) {
     button.setAttribute('aria-pressed', String(button.dataset.state === name));
   }
@@ -72,6 +109,7 @@ for (const button of document.querySelectorAll('[data-state]')) {
 }
 document.querySelector('[data-replay]').addEventListener('click', () => {
   watching.stop();
+  deal();
   setState('idle');
   watching = watch(presets);
 });
@@ -100,7 +138,8 @@ const html = `<!doctype html>
   p { margin: 0 0 16px; color: var(--muted); max-width: 60ch; }
   h2 { font-size: 12px; font-weight: 400; margin: 0 0 12px; color: var(--muted); }
   h2 code { font: inherit; opacity: 0.7; margin-left: 8px; }
-  h2 code::before { content: 'data-hud="'; } h2 code::after { content: '"'; }
+  h2 code:not(.plain)::before { content: 'data-hud="'; } h2 code:not(.plain)::after { content: '"'; }
+  h2 code.plain { margin: 0; }
   section { margin-bottom: 32px; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
   button { font: inherit; color: inherit; background: none; border: 1px solid var(--line);

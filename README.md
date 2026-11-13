@@ -2,7 +2,7 @@
 
 Dependency-free TypeScript library for animated, monochrome HUD-style frames and rings on existing DOM elements.
 
-**Status:** early, and usable in a page: frames, rings and arcs attach to existing elements, follow their size and react to pointer, focus and state changes. Tried in Chrome only. See `docs/ROADMAP.md`.
+**Status:** early, and usable: frames, rings and arcs attach to existing elements, follow their size and react to pointer, focus and state changes, and the same drawings can be put on a 2D canvas. Tried in Chrome only. See `docs/ROADMAP.md`.
 
 ## Idea
 
@@ -53,7 +53,24 @@ The drawing takes its colour from the element's CSS `color`, never changes the e
 .panel { padding: var(--hud-inset-top) var(--hud-inset-right) var(--hud-inset-bottom) var(--hud-inset-left); }
 ```
 
-Without a DOM, `renderToString(spec, width, height)` gives a still SVG and `createPlayer` plays a spec against a clock you supply.
+On a canvas, in a game or a visualisation with a loop of its own, a player does the thinking and `drawScene` the drawing:
+
+```ts
+import { createPlayer, drawScene, presets } from 'hudline';
+
+const player = createPlayer(presets['ring-blocks'], 140, 140);
+
+function frame(now: number) {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  drawScene(context, player.scene(now / 1000), { x: 20, y: 20, color: '#7fe3ff' });
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+player.set('alert', performance.now() / 1000);   // states and sizes are yours to drive
+```
+
+Both renderers draw the same scene; in Chrome they agree pixel for pixel within antialiasing. Without any DOM, `renderToString(spec, width, height)` gives a still SVG.
 
 ## Development
 
@@ -62,7 +79,8 @@ npm install
 npm run check
 npm run gallery   # writes a self-contained, animated gallery.html
 npm run perf      # writes perf.html: 50 drawings with a frame timer
-npm run selftest  # writes selftest.html: checks the DOM binding in a real browser
+npm run selftest  # writes selftest.html: checks the DOM binding and canvas parity in a real browser
+npm run motion    # looks for jumps in every preset's transitions (needs rsvg-convert)
 ```
 
 Requires Node 22 or newer.

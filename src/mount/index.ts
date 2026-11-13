@@ -22,4 +22,3 @@ export { watch } from './watch.js';
 export type { Watch } from './watch.js';
 export type { Player } from './player.js';
 export type { BandOverride, BandSpec, HudSpec, StateSpec } from './spec.js';
-export type { HatchSpec } from '../surface/index.js';

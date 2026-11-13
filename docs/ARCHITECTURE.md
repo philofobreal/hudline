@@ -21,7 +21,7 @@ A ring is a track that is a circle. A frame is a track that is a closed polygon 
 | `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track`, `portion(track, share) → Track`, `holds(track, from, to) → boolean`, `widest(track, from, wanted) → number`, `clearance(track, depth) → Insets` |
 | `pattern` | Layout of each pattern kind, seam fitting, thinning on short bands, wrapping and merging of intervals | `compile(spec, context) → Dashes` |
 | `motion` | Springs, noise, how travel accumulates across changes of speed, seeded randomness | `begin(target) → BandState`, `steer(state, target, time, settle) → BandState`, `sample(state, length, closed, time, out)`, `moving(state, closed, time)`, `partLevel(state, part, time)` |
-| `surface` | How bands become SVG elements and dash arrays; how a hatch is painted; how a band is split into parts; which elements a live drawing has and what is written on each paint; later canvas drawing | `svgMarkup(scene) → string`, `createSvgSurface(host) → SvgSurface`, `partCount(dashes, patternLength)` |
+| `surface` | How bands become SVG elements and dash arrays; how a hatch is painted; how a band is split into parts; which elements a live drawing has and what is written on each paint; how the same scene is stroked on a canvas | `svgMarkup(scene) → string`, `createSvgSurface(host) → SvgSurface`, `drawScene(context, scene, options?)`, `partCount(dashes, patternLength)` |
 | `mount` | How a spec is played (which bands fit, seed mixing, states to targets, what is recomputed when); observers, the shared loop, lifecycle, turning DOM events into states | the public API: `attach`, `watch`, `createPlayer`, `renderToString` |
 | `catalog` | Nothing; it is data: the catalogue entries as typed specs | `presets` |
 
@@ -68,6 +68,7 @@ renderToString(spec, width, height);          // standalone SVG at rest, no DOM
 const player = createPlayer(spec, width, height);
 player.set('alert', time);                    // the caller supplies the time
 player.markup(time);                          // SVG at that moment
+drawScene(context, player.scene(time), { x, y, color });   // the same on a 2D canvas
 ```
 
 ## 3. What runs when
@@ -124,7 +125,13 @@ A band's pattern says where it is drawn; its fill says with what. The default is
 
 A dashed stroke cannot address its parts one by one. A band marked `addressable` is drawn as one element per part of its pattern, and its flicker dims each part on its own curve. This is opt-in because it costs one element and one attribute write per part and frame.
 
-## 7. Performance
+## 7. Canvas
+
+`drawScene` strokes each layer's path (`Path2D` from the same path data SVG uses) with the same dash lengths, dash offset, width, cap and opacity. Nothing about geometry, patterns or motion exists twice: both renderers consume a `Scene`. What the caller keeps: the loop, clearing, the device pixel ratio, where each drawing goes, and the colour. Paths and dash arrays are cached on the tracks and patterns they come from; stripe tiles are cached per context.
+
+There is no canvas counterpart of `attach`: no resizing, no events, no states from the pointer. A canvas application calls `player.resize` and `player.set` itself.
+
+## 8. Performance
 
 - Designed for at most 50 animated drawings per page.
 - Target: under 2 ms of script time per frame for 50 drawings. Measured in headless Chrome with all 50 in their busiest state: 0.70 ms median, 1.8 ms at the 95th percentile. See the roadmap for what that figure does and does not cover.

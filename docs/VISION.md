@@ -18,7 +18,7 @@ A general way to give existing DOM elements the look of film and game HUDs: clea
 - Rings: concentric bands, open arcs, equal segments, ticks, dots, seeded irregular blocks, value arcs (progress).
 - Motion: drift along the track, rigid rotation, draw-on, value transitions, noise-driven flicker of a band or of its parts one by one, moving hatch stripes, state transitions.
 - Reactions: pointer and focus, host resize, visibility, element insertion and removal, custom state changes.
-- Renderer: SVG.
+- Renderers: SVG in the DOM, and a 2D canvas for applications with a loop of their own.
 - Up to 50 animated elements per page.
 
 ## Non-goals (v1)
@@ -33,6 +33,5 @@ A general way to give existing DOM elements the look of film and game HUDs: clea
 
 ## Later
 
-- Canvas 2D renderer on the same core.
 - Notched and toothed ring outlines.
 - Per-state colour sets and an optional glow layer.

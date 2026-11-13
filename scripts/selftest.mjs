@@ -13,7 +13,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const library = bundle(join(root, 'dist', 'index.js'), 'hudline');
 
 const page = `
-const { attach, presets, watch } = hudline;
+const { attach, presets, watch, createPlayer, drawScene } = hudline;
 const results = [];
 const check = (name, ok, detail = '') => results.push({ name, ok: Boolean(ok), detail: String(detail) });
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -204,7 +204,67 @@ async function run() {
   watching.stop();
   check('stopping the watch removes what it drew', late.querySelector('svg') === null);
 
-  // 14. Elements that cannot hold a drawing.
+  // 14. Canvas draws what SVG draws.
+  // The same scene is rendered both ways at 3× and compared pixel by
+  // pixel. Edges are antialiased a little differently by the two
+  // renderers, so a pixel counts as different only if it is far off,
+  // and the share of such pixels among the drawn ones has to be small.
+  async function parity(name, width, height, time) {
+    const scale = 3;
+    const player = createPlayer(presets[name], width, height);
+    const markup = player.markup(time)
+      .replace('<svg ', '<svg color="#ffffff" ')
+      .replace('width="' + width + '" height="' + height + '"', 'width="' + width * scale + '" height="' + height * scale + '"');
+    const image = new Image();
+    image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markup);
+    await image.decode();
+    const make = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      return canvas.getContext('2d', { willReadFrequently: true });
+    };
+    const fromSvg = make();
+    fromSvg.drawImage(image, 0, 0);
+    const fromCanvas = make();
+    fromCanvas.scale(scale, scale);
+    drawScene(fromCanvas, player.scene(time), { color: '#ffffff' });
+    const a = fromSvg.getImageData(0, 0, width * scale, height * scale).data;
+    const b = fromCanvas.getImageData(0, 0, width * scale, height * scale).data;
+    let drawn = 0;
+    let off = 0;
+    for (let i = 3; i < a.length; i += 4) {
+      if (a[i] > 40 || b[i] > 40) drawn++;
+      if (Math.abs(a[i] - b[i]) > 96) off++;
+    }
+    return { drawn, share: drawn === 0 ? 1 : off / drawn };
+  }
+  for (const [name, width, height] of [
+    ['ring-segmented', 120, 120], ['ring-scale', 120, 120], ['ring-blocks', 160, 160], ['arc-value', 120, 120],
+    ['frame-chamfered', 240, 110], ['frame-tabbed', 240, 110], ['frame-stepped', 240, 110],
+    ['frame-double', 240, 110], ['frame-brackets', 240, 110], ['frame-hatched', 240, 110],
+    ['ring-scale', 48, 48], ['frame-tabbed', 96, 44],
+  ]) {
+    // Late enough for the draw-on to be over, at a moment when things are mid-travel.
+    const { drawn, share } = await parity(name, width, height, 3.37);
+    check('canvas matches svg: ' + name + ' ' + width + '×' + height, drawn > 200 && share < 0.02, (share * 100).toFixed(2) + ' % of ' + drawn + ' drawn pixels differ');
+    console.log('SELFTEST PARITY ' + name + ' ' + width + '×' + height + ': ' + (share * 100).toFixed(2) + ' % of ' + drawn + ' drawn pixels differ');
+  }
+  {
+    const dots = { shape: { kind: 'ring' }, bands: [{ width: 5, pattern: { kind: 'dots', count: 12 } }] };
+    const player = createPlayer(dots, 100, 100);
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 100;
+    const context = canvas.getContext('2d');
+    drawScene(context, player.scene(0), { color: '#fff' });
+    const data = context.getImageData(0, 0, 100, 100).data;
+    let lit = 0;
+    for (let i = 3; i < data.length; i += 4) if (data[i] > 128) lit++;
+    // Twelve discs 5 wide cover about 12 × π × 2.5² ≈ 236 pixels.
+    check('canvas draws dots as discs', lit > 150 && lit < 320, lit + ' lit pixels');
+  }
+
+  // 15. Elements that cannot hold a drawing.
   const image = stage.appendChild(document.createElement('img'));
   attach(image, presets['frame-chamfered']).set('alert');
   check('an img is left alone', image.children.length === 0 && image.style.position === '');
@@ -234,7 +294,7 @@ const html = `<!doctype html>
   ul { list-style: none; padding: 0; white-space: pre; }
   .bad { color: #ff8a7a; }
 </style>
-<strong id="summary">running, about 30 seconds…</strong>
+<strong id="summary">running, about 35 seconds…</strong>
 <ul id="list"></ul>
 <div id="stage"></div>
 <script>

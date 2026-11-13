@@ -40,6 +40,7 @@ When approval is needed: stop, describe the change, the reason, and one alternat
 
 If a task seems to require breaking one of these, stop and ask.
 
+0. **One scene, two renderers.** Geometry, patterns and motion are worked out once, into a scene. SVG and canvas only draw scenes. A feature that one renderer cannot draw is not done.
 1. **Zero runtime dependencies.** `dependencies` in `package.json` stays empty.
 2. **Dependency direction.** `mount` may import `track`, `pattern`, `motion`, `surface`. `surface` may import types from `track` and `pattern`. `catalog` may import types from `mount`. `track`, `pattern` and `motion` import nothing from other modules. Modules reach each other through `index.ts` only. No cycles. Enforced by `npm run rules`.
 3. **Pure core.** `track`, `pattern` and `motion` never touch `window`, `document`, timers, `Math.random` or `Date`. Time and seeds are parameters.
@@ -91,12 +92,13 @@ npm test           # build, then node --test
 npm run check      # typecheck + rules + test
 npm run gallery    # build, then write a self-contained gallery.html (not committed)
 npm run perf       # build, then write perf.html: 50 drawings, timed (not committed)
-npm run selftest   # build, then write selftest.html: the DOM binding in a real browser
+npm run selftest   # build, then write selftest.html: the DOM binding and canvas parity in a real browser
+npm run motion     # build, then look for jumps in every preset's transitions (needs rsvg-convert)
 ```
 
 Anything that changes what is drawn is not done until you have looked at the rendered gallery yourself, in every state and at the smallest size as well as the largest. Tests prove numbers, not appearance.
 
-Anything that touches `mount` or `surface` is not done until `selftest.html` passes in a real browser. The unit tests for the DOM binding run against a stand-in that can hide what a browser does differently.
+Anything that touches `mount` or `surface` is not done until `selftest.html` passes in a real browser. It also compares canvas against SVG pixel by pixel, which is how renderer parity is kept. The unit tests for the DOM binding run against a stand-in that can hide what a browser does differently.
 
 `npm run rules` checks only what a script can check. Passing it does not prove the other invariants hold. When a rule changes in this file, change `scripts/check-rules.mjs` in the same commit.
 

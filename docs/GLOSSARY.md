@@ -36,5 +36,8 @@ Use these terms in code, comments and docs. Do not introduce synonyms.
 | Draw-on | kirajzolódás | Revealing a band from zero to full length |
 | Value | érték | Share of a band that is revealed, 0–1; used for progress and draw-on |
 | State | állapot | Named parameter set (idle, hover, active, alert) |
-| Surface | felület | A renderer: SVG now, canvas later |
+| Surface | felület | A renderer: SVG or canvas |
+| Scene | jelenet | Everything drawn for one host at one instant; what renderers consume |
+| Player | lejátszó | A spec being played against a clock the caller supplies, without a DOM |
+| Preset | preset | A ready-made spec with a name |
 | Safe inset | biztonságos margó | Distance content should keep from each host side |
