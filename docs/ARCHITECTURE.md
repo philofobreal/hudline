@@ -18,11 +18,11 @@ A ring is a track that is a circle. A frame is a track that is a closed polygon 
 
 | Module | Hides | Interface (planned) |
 |---|---|---|
-| `track` | All geometry: corner and edge operators, detail dropping, offsets, arc length | `resolve(shape, width, height) → Track` |
-| `pattern` | Fitting patterns to a length, phase, interpolation between patterns | `compile(spec, length) → Dashes` |
+| `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track` |
+| `pattern` | Layout of each pattern kind, seam fitting, thinning on short bands, wrapping and merging of intervals | `compile(spec, context) → Dashes`, `reveal(dashes, length, value) → Dashes` |
 | `motion` | Clock handling, springs, noise, seeded randomness, state transitions | `drive(params, time) → values` |
-| `surface` | SVG node management now; canvas drawing later | `paint(track, bands, values)` |
-| `mount` | Observers, lifecycle, turning DOM events into states | the public API |
+| `surface` | How bands become SVG elements and dash arrays; later live DOM updates and canvas drawing | `svgMarkup(scene) → string` |
+| `mount` | How a spec becomes a scene (which bands fit, seed mixing); later observers, lifecycle, turning DOM events into states | the public API: `renderToString` today, `attach` in M4 |
 | `catalog` | Nothing; it is data: the catalogue entries as typed specs, later the presets | `catalog` |
 
 ### Dependency rule
@@ -47,7 +47,21 @@ Each module owns the part of the spec language that describes its own decisions,
 | `MotionSpec` | `motion` |
 | `BandSpec`, `StateSpec`, `HudSpec` | `mount` |
 
-### Public API (planned)
+### What crosses module boundaries
+
+- A `Track` is opaque to its users: they read `length`, `closed` and `anchors`, draw `path` (path data that an SVG `d` attribute and `Path2D` both accept), and call `offset`. The segments and the angle convention stay inside `track`.
+- `Dashes` is a flat, sorted list of drawn intervals plus a cap style. `surface` turns it into a dash array whose sum equals the track length.
+- `pattern` receives its randomness as a function in its context, so it stays independent of `motion`, where the generator lives.
+
+### Public API
+
+Available now:
+
+```ts
+renderToString(spec, width, height);  // standalone SVG at rest; rings and arcs
+```
+
+Planned for M4:
 
 ```ts
 const hud = attach(element, spec);  // idempotent
@@ -79,8 +93,9 @@ One shared `requestAnimationFrame` loop serves all elements.
 - **Primitives:** line and circular arc. The offset of a line is a line; the offset of an arc is a concentric arc. Lengths are closed-form.
 - **Seamless patterns:** on a closed track the period is fitted to the length, `p' = L / round(L / p)`.
 - **Detail budget:** each edge has a budget (length minus corners). Details are placed by priority and dropped when they do not fit, with hysteresis so that a size near the threshold does not flicker.
-- **Band limit:** half the band width may not exceed the corner radius it bends around; the track clamps it.
-- **Rings:** the radius comes from the host's smaller side; band offsets and widths are fixed pixels. Tick counts halve when spacing falls under a minimum.
+- **Band limit:** a band is left out when less than its own width would remain between its inner edge and the centre it bends around. Closer than that it stops reading as a strip.
+- **Rings:** the radius comes from the host's smaller side; band offsets and widths are fixed pixels. Tick, dot and segment counts drop to the largest that fits; ticks can drop in multiples of a number so that a coarser band stays aligned.
+- **Seeded blocks:** on a closed band the row starts at a seeded position, so several block bands on one ring do not all begin at the same angle.
 
 ## 5. DOM contract
 

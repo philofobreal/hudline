@@ -28,22 +28,31 @@ export type PatternSpec =
    * that no seam shows; dash and gap keep their ratio.
    */
   | { readonly kind: 'dashes'; readonly dash: number; readonly gap: number }
-  /** `count` equal intervals separated by `gap` pixels. */
+  /**
+   * `count` equal intervals separated by `gap` pixels. When the band is
+   * too short for that many, the count drops to the largest that leaves
+   * each interval at least a pixel long.
+   */
   | { readonly kind: 'segments'; readonly count: number; readonly gap: number }
   /**
    * `count` evenly spaced marks, each `thickness` pixels long (default 1).
-   * While neighbouring marks would be closer than `minSpacing` (default
-   * 3), the count is halved.
+   * When the band is too short to keep `minSpacing` pixels (default 3)
+   * between neighbours, the count drops to the largest that fits. With
+   * `multipleOf`, it drops to the largest multiple of that number, so a
+   * second band with exactly that many marks stays lined up with this
+   * one: 60 minor ticks with `multipleOf: 12` thin to 48, 36, 24, 12.
    */
   | {
       readonly kind: 'ticks';
       readonly count: number;
       readonly thickness?: number;
       readonly minSpacing?: number;
+      readonly multipleOf?: number;
     }
   /**
    * `count` evenly spaced round dots as wide as the band. Thins out like
-   * ticks; `minSpacing` defaults to twice the band width.
+   * ticks; `minSpacing`, here from centre to centre, defaults to twice
+   * the band width.
    */
   | { readonly kind: 'dots'; readonly count: number; readonly minSpacing?: number }
   /**

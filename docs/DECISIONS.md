@@ -113,3 +113,33 @@ Rejected: One central spec file (every module would depend on it and it would kn
 Decision: The project is published under the MIT licence. `scripts/check-rules.mjs` enforces the dependency allowlist, the import direction and the purity of the core, as part of `npm run check`.
 Why: A public repository without a licence cannot be used by anyone. Rules that nothing checks erode.
 Rejected: No licence; a lint dependency for the import rules.
+
+## D-018 Tracks are opaque and carry path data
+2026-11-13 · Status: proposed
+Decision: A `Track` exposes `length`, `closed`, `anchors` and `path`. Its segments and the angle convention stay inside `track`; users get parallel tracks from `offset`.
+Why: SVG and `Path2D` both accept path data, so no renderer needs the segments, and the convention lives in one place.
+Rejected: Exposing segments to `surface` (the convention would have to be known twice).
+
+## D-019 Counts drop to the largest that fits; ticks may drop in multiples
+2026-11-13 · Status: proposed
+Decision: Ticks, dots and segments drop to the largest count that fits instead of halving. `ticks` gains `multipleOf`. Supersedes the halving rule noted in the spec comments of D-012's time.
+Why: Halving breaks alignment between a 60-tick and a 12-tick band (30 is not a multiple of 12) and wastes room. Multiples of the coarser count keep every major tick on a minor one.
+Rejected: Halving; a thinning group shared between bands (more machinery for the same result).
+
+## D-020 Patterns receive randomness through their context
+2026-11-13 · Status: proposed
+Decision: `compile` takes a `random(seed)` factory in its context. `mount` supplies it from `motion.createRandom`, mixing in the host seed.
+Why: `pattern` must not import `motion`, and copying the generator would be repetition. The caller already owns seed mixing.
+Rejected: A shared utility module (a boundary change for twelve lines); a second generator inside `pattern`.
+
+## D-021 Band limit and seeded start of block bands
+2026-11-13 · Status: proposed
+Decision: A band is left out when less than its own width would remain inside it. On a closed band, seeded blocks start at a seeded position.
+Why: Both came from looking at the first renders: bands near the centre clotted into blobs, and four block bands starting at 12 o'clock formed a visible spoke.
+Rejected: Leaving either to the author to work around in every spec.
+
+## D-022 `renderToString` is public
+2026-11-13 · Status: proposed
+Decision: `renderToString(spec, width, height)` is exported: a standalone SVG at rest.
+Why: It is how milestone M1's output is produced and inspected, and it serves server rendering and tests without a DOM.
+Rejected: Keeping it internal and rendering the gallery through a private import.

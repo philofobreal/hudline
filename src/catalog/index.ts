@@ -25,13 +25,19 @@ const segmentedRing: HudSpec = {
 
 /**
  * R2 Scale ring: 60 short ticks and 12 long ones. Both tick bands share
- * an offset, so they share their outer edge.
+ * an offset, so they share their outer edge; the short ticks thin out in
+ * multiples of 12, so they stay lined up with the long ones.
  */
 const scaleRing: HudSpec = {
   shape: { kind: 'ring', inset: 2 },
   bands: [
     { width: 1 },
-    { offset: 4, width: 5, pattern: { kind: 'ticks', count: 60, minSpacing: 4 }, priority: 1 },
+    {
+      offset: 4,
+      width: 5,
+      pattern: { kind: 'ticks', count: 60, minSpacing: 4, multipleOf: 12 },
+      priority: 1,
+    },
     { offset: 4, width: 10, pattern: { kind: 'ticks', count: 12, thickness: 2 }, priority: 2 },
   ],
 };

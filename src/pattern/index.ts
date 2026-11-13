@@ -1,12 +1,15 @@
 /**
  * pattern — dash patterns along a length.
  *
- * Hides: how a pattern is fitted to a track length, how phase is applied,
- * and how two patterns are blended. Knows nothing about shapes, the DOM
- * or time. Pure.
+ * Hides: how each pattern kind is laid out, how a pattern is fitted to a
+ * band so that a closed band shows no seam, how counts thin out on short
+ * bands, how intervals are wrapped, clipped and merged. Knows nothing
+ * about shapes, the DOM or time. Pure.
  *
- * Planned interface: `compile(spec, length, anchors) → Dashes`
- * (milestone M1).
+ * Interface: `compile(spec, context) → Dashes` and
+ * `reveal(dashes, length, value) → Dashes`.
  */
+export { compile, reveal } from './compile.js';
+export type { Dashes, PatternContext } from './compile.js';
 export { fitPeriod } from './fit.js';
 export type { PatternSpec, Span } from './spec.js';

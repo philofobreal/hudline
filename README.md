@@ -2,16 +2,16 @@
 
 Dependency-free TypeScript library for animated, monochrome HUD-style frames and rings on existing DOM elements.
 
-**Status:** early. The governance, the spec language (types) and the catalogue exist; no geometry or rendering yet, and `attach` is not implemented. See `docs/ROADMAP.md`.
+**Status:** early. Rings and arcs render as still SVG. No frames, no motion and no DOM binding yet: `attach` is not implemented. See `docs/ROADMAP.md`.
 
 ## Idea
 
 Every shape is a **track** (lines and circular arcs), one or more **bands** along it, and a dash **pattern** on each band. Animating a shape means driving the pattern's phase and proportions, so motion always follows the outline, on straight edges, corners and circles alike.
 
-Planned usage (`attach` does not exist yet; the spec types do):
+What works today, and what is planned:
 
 ```ts
-import { attach, type HudSpec } from 'hudline';
+import { renderToString, type HudSpec } from 'hudline';
 
 const spec: HudSpec = {
   shape: { kind: 'ring', inset: 2 },
@@ -22,9 +22,13 @@ const spec: HudSpec = {
   ],
 };
 
-const hud = attach(element, spec);
-hud.set('alert');
-hud.detach();
+// Works today: a standalone SVG at rest, coloured by CSS `color`.
+const svg = renderToString(spec, 200, 200);
+
+// Planned for milestone M4:
+// const hud = attach(element, spec);
+// hud.set('alert');
+// hud.detach();
 ```
 
 ## Development
@@ -32,6 +36,7 @@ hud.detach();
 ```
 npm install
 npm run check
+npm run gallery   # writes gallery.html with the catalogue rings
 ```
 
 Requires Node 22 or newer.

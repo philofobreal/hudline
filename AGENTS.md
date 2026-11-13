@@ -89,7 +89,10 @@ npm run rules      # scripts/check-rules.mjs: invariants 1, 2 and 3
 npm run build      # tsc → dist/
 npm test           # build, then node --test
 npm run check      # typecheck + rules + test
+npm run gallery    # build, then write gallery.html (not committed)
 ```
+
+Anything that changes what is drawn is not done until you have looked at the rendered gallery yourself. Tests prove numbers, not appearance.
 
 `npm run rules` checks only what a script can check. Passing it does not prove the other invariants hold. When a rule changes in this file, change `scripts/check-rules.mjs` in the same commit.
 
