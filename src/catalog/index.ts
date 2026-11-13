@@ -1,13 +1,17 @@
 /**
  * catalog — the primitive catalogue as data.
  *
- * Every entry of `docs/CATALOG.md` that the spec language can express is
- * written here as a typed constant, so the compiler proves that the
- * language covers it. In milestone M5 this grows into the preset
- * library. Contains data only; imports types and nothing else.
+ * Every entry of `docs/CATALOG.md` is written here as a typed constant,
+ * so the compiler proves that the spec language covers it. Later this
+ * grows into the preset library. Contains data only; imports types and nothing else.
  *
  * Every entry defines the states `enter`, `hover` and `alert`, so that
  * the gallery can show how each reacts.
+ *
+ * Rule for every entry: `hover` and `alert` must change the first band.
+ * On a small host the inner bands and the steps are left out, and a
+ * state that only touches those would change nothing that is visible.
+ * The first band is the outermost and is there as long as anything is.
  */
 import type { HudSpec } from '../mount/index.js';
 
@@ -32,9 +36,12 @@ const segmentedRing: HudSpec = {
       bands: { outline: { value: 0 }, segments: { value: 0, opacity: 0 } },
       settle: DRAW_ON,
     },
-    hover: { bands: { segments: { offset: 4, width: 11, motion: { spin: 90 } } } },
+    hover: {
+      bands: { outline: { width: 2 }, segments: { offset: 5, width: 11, motion: { spin: 90 } } },
+    },
     alert: {
       bands: {
+        outline: { motion: { flicker: { seed: 8, rate: 9, depth: 0.5 } } },
         segments: { motion: { spin: -140, flicker: { seed: 1, rate: 9, depth: 0.7 } } },
       },
     },
@@ -68,8 +75,13 @@ const scaleRing: HudSpec = {
       bands: { outline: { value: 0 }, minor: { value: 0 }, major: { value: 0 } },
       settle: DRAW_ON,
     },
-    hover: { bands: { major: { width: 14 } } },
-    alert: { bands: { minor: { motion: { flicker: { seed: 5, rate: 12, depth: 0.8 } } } } },
+    hover: { bands: { outline: { width: 2 }, minor: { width: 7 }, major: { width: 14 } } },
+    alert: {
+      bands: {
+        outline: { motion: { flicker: { seed: 6, rate: 12, depth: 0.5 } } },
+        minor: { motion: { flicker: { seed: 5, rate: 12, depth: 0.8 } } },
+      },
+    },
   },
 };
 
@@ -116,7 +128,13 @@ const blockRing: HudSpec = {
       },
       settle: DRAW_ON,
     },
-    hover: { bands: { b: { motion: { spin: -70 } }, c: { motion: { spin: 40 } } } },
+    hover: {
+      bands: {
+        a: { motion: { spin: 50 } },
+        b: { motion: { spin: -70 } },
+        c: { motion: { spin: 40 } },
+      },
+    },
     alert: {
       bands: {
         a: { motion: { spin: 120 } },
@@ -137,9 +155,10 @@ const valueArc: HudSpec = {
   ],
   states: {
     enter: { bands: { guide: { value: 0 }, value: { value: 0 } }, settle: DRAW_ON },
-    hover: { bands: { value: { width: 6 } } },
+    hover: { bands: { guide: { width: 2 }, value: { width: 6 } } },
     alert: {
       bands: {
+        guide: { motion: { flicker: { seed: 4, rate: 6, depth: 0.5 } } },
         value: { value: 0.95, motion: { flicker: { seed: 9, rate: 6, depth: 0.6 } } },
       },
     },
@@ -166,10 +185,10 @@ const chamferedFrame: HudSpec = {
   ],
   states: {
     enter: { bands: { outline: { value: 0 } }, settle: DRAW_ON },
-    hover: { bands: { runner: { opacity: 1, motion: { drift: 40 } } } },
+    hover: { bands: { outline: { width: 2 }, runner: { opacity: 1, motion: { drift: 40 } } } },
     alert: {
       bands: {
-        outline: { width: 2 },
+        outline: { width: 3 },
         runner: { opacity: 1, motion: { drift: 220, flicker: { seed: 3, rate: 10, depth: 0.6 } } },
       },
     },
@@ -204,8 +223,13 @@ const tabbedFrame: HudSpec = {
   ],
   states: {
     enter: { bands: { outline: { value: 0 }, fill: { opacity: 0 } }, settle: DRAW_ON },
-    hover: { bands: { fill: { width: 11 } } },
-    alert: { bands: { fill: { motion: { flicker: { seed: 6, rate: 8, depth: 0.8 } } } } },
+    hover: { bands: { outline: { width: 2 }, fill: { width: 11 } } },
+    alert: {
+      bands: {
+        outline: { motion: { flicker: { seed: 5, rate: 8, depth: 0.5 } } },
+        fill: { motion: { flicker: { seed: 6, rate: 8, depth: 0.8 } } },
+      },
+    },
   },
 };
 
@@ -250,8 +274,13 @@ const steppedFrame: HudSpec = {
   ],
   states: {
     enter: { bands: { outline: { value: 0 }, shelf: { opacity: 0 } }, settle: DRAW_ON },
-    hover: { bands: { shelf: { offset: -6, width: 4 } } },
-    alert: { bands: { shelf: { motion: { flicker: { seed: 2, rate: 9, depth: 0.8 } } } } },
+    hover: { bands: { outline: { width: 2 }, shelf: { offset: -6, width: 4 } } },
+    alert: {
+      bands: {
+        outline: { motion: { flicker: { seed: 3, rate: 9, depth: 0.5 } } },
+        shelf: { motion: { flicker: { seed: 2, rate: 9, depth: 0.8 } } },
+      },
+    },
   },
 };
 
@@ -282,9 +311,10 @@ const doubleFrame: HudSpec = {
       bands: { outer: { value: 0 }, inner: { value: 0 }, accents: { opacity: 0 } },
       settle: DRAW_ON,
     },
-    hover: { bands: { inner: { offset: 6, opacity: 1 }, accents: { width: 5 } } },
+    hover: { bands: { outer: { width: 2 }, inner: { offset: 6, opacity: 1 }, accents: { width: 5 } } },
     alert: {
       bands: {
+        outer: { motion: { flicker: { seed: 1, rate: 11, depth: 0.4 } } },
         inner: { opacity: 1, motion: { flicker: { seed: 7, rate: 11, depth: 0.7 } } },
         accents: { width: 5 },
       },
@@ -321,10 +351,41 @@ const cornerBrackets: HudSpec = {
   },
 };
 
-/*
- * F6 Hatched edge strip is not expressible yet: diagonal hatching is not
- * an interval pattern. It is scheduled for milestone M5.
+/**
+ * F6 Hatched edge strip: diagonal stripes alongside the bottom edge,
+ * starting where the bottom-right chamfer ends. The stripes move; the
+ * strip does not.
  */
+const hatchedFrame: HudSpec = {
+  shape: {
+    kind: 'frame',
+    inset: 1,
+    corners: { tl: { kind: 'chamfer', size: 10 }, br: { kind: 'chamfer', size: 10 } },
+  },
+  bands: [
+    { id: 'outline', width: 1 },
+    {
+      id: 'strip',
+      offset: 4,
+      width: 7,
+      // The corner anchor is the chamfer itself. Trimming its whole length
+      // off the front and widening the back leaves a stretch that begins
+      // at the chamfer's end and runs along the bottom edge.
+      pattern: { kind: 'spans', spans: [{ anchor: 'br', before: -10, after: 72 }] },
+      fill: { kind: 'hatch', angle: 45, stripe: 2, gap: 3, drift: 10 },
+    },
+  ],
+  states: {
+    enter: { bands: { outline: { value: 0 }, strip: { opacity: 0 } }, settle: DRAW_ON },
+    hover: { bands: { outline: { width: 2 }, strip: { width: 10 } } },
+    alert: {
+      bands: {
+        outline: { motion: { flicker: { seed: 9, rate: 9, depth: 0.5 } } },
+        strip: { width: 10, motion: { flicker: { seed: 4, rate: 9, depth: 0.7 } } },
+      },
+    },
+  },
+};
 
 /** The catalogue, keyed by the identifiers used in `docs/CATALOG.md`. */
 export const catalog = {
@@ -337,4 +398,5 @@ export const catalog = {
   F3: steppedFrame,
   F4: doubleFrame,
   F5: cornerBrackets,
+  F6: hatchedFrame,
 } as const satisfies Readonly<Record<string, HudSpec>>;

@@ -8,8 +8,8 @@ Work happens only in the milestone marked **current**. Durations assume one expe
 | M1, 1 week | Ring track, `pattern`, static SVG output | Catalogue rings are correct at three sizes; closed patterns show no seam; ticks thin out at small sizes, consistently across bands that share a grid | done; accepted by the maintainer on the gallery |
 | M2, 1 week | `motion`: spin, drift, draw-on, value, noise, states | Same seed and time give the same output; transitions are smooth when interrupted | done; accepted by delegation |
 | M3, 1.5 weeks | Frame track: corner and edge operators, bands, detail dropping | Catalogue frames are correct at three sizes; details drop by priority without flicker at thresholds | done; accepted by delegation. Hysteresis followed in M4 |
-| M4, 1 week | `mount`: observers, interactions, lifecycle | 50 animated elements run without dropped frames; no leaks after hosts are removed; reduced motion respected | **current**: implemented and tested; waits for the maintainer to try `gallery.html` by hand |
-| M5, 1 week | Addressable bands, diagonal hatch, preset library | The frames and rings of the reference images come from presets | planned |
+| M4, 1 week | `mount`: observers, interactions, lifecycle | 50 animated elements run without dropped frames; no leaks after hosts are removed; reduced motion respected | done; tried by the maintainer, who found two defects that are fixed (D-036, D-039) |
+| M5, 1 week | Addressable bands, diagonal hatch, preset library | The frames and rings of the reference images come from presets | **current**: addressable bands and hatch are done and F6 completes the catalogue; the named preset library and attaching by attribute are not started |
 | Later | Canvas `surface` | Same spec renders on canvas within a 1 px visual tolerance | not scheduled |
 
 ## Measured in M4

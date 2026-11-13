@@ -20,8 +20,7 @@ export interface MotionSpec {
   /**
    * Noise-driven opacity changes. `rate` is how many times per second
    * the level changes on average; `depth` (0–1) is how far opacity may
-   * fall. On an addressable band every segment will flicker on its own
-   * once addressable bands are implemented (milestone M5).
+   * fall. On an addressable band every part flickers on its own.
    */
   readonly flicker?: {
     readonly seed: number;

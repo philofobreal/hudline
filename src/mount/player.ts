@@ -1,9 +1,9 @@
-import { begin, createRandom, moving, sample, steer, travels } from '../motion/index.js';
+import { begin, createRandom, moving, partLevel, sample, steer, travels } from '../motion/index.js';
 import type { BandFrame, BandState, BandTarget } from '../motion/index.js';
 import { compile } from '../pattern/index.js';
 import type { Dashes } from '../pattern/index.js';
-import { svgMarkup } from '../surface/index.js';
-import type { Layer, Scene } from '../surface/index.js';
+import { partCount, svgMarkup } from '../surface/index.js';
+import type { Hatch, Layer, Scene } from '../surface/index.js';
 import { clearance, holds, offset, portion, resolve, widest } from '../track/index.js';
 import type { Insets, Track } from '../track/index.js';
 import type { BandOverride, BandSpec, HudSpec } from './spec.js';
@@ -71,6 +71,14 @@ interface BandRuntime {
   state: BandState;
   readonly frame: BandFrame;
   readonly layer: Mutable<Layer>;
+  /** The band's stripes, if it is hatched; `shift` is brought up to date each frame. */
+  readonly hatch: Mutable<Hatch> | undefined;
+  /** Pixels per second at which the stripes move across themselves. */
+  readonly hatchDrift: number;
+  /** Brightness per part, for a band whose parts are drawn one by one. */
+  readonly levels: number[] | undefined;
+  /** How many parts `dashes` has. */
+  parts: number;
   // Everything below is kept until the inputs it depends on change.
   /** The idle geometry `fits` was worked out for. */
   fitBase: Track | undefined;
@@ -121,7 +129,20 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
   const bands: BandRuntime[] = spec.bands.map((band, index) => {
     const idle = targetOf(band);
     const start = enters ? withOverride(idle, overrideIn(spec, band, 'enter')) : idle;
+    const fill = band.fill;
     return {
+      hatch:
+        fill === undefined
+          ? undefined
+          : {
+              angle: finiteOr(fill.angle, 45),
+              stripe: positiveOr(fill.stripe, 2),
+              gap: positiveOr(fill.gap, 4),
+              shift: 0,
+            },
+      hatchDrift: finiteOr(fill?.drift, 0),
+      levels: band.addressable === true ? [] : undefined,
+      parts: 0,
       spec: band,
       idle,
       target: idle,
@@ -135,6 +156,8 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
         patternLength: 0,
         phase: 0,
         opacity: 0,
+        hatch: undefined,
+        levels: undefined,
       },
       fitBase: undefined,
       fitFor: Number.NaN,
@@ -189,7 +212,7 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
         // the offset being sampled; the previous centreline is close
         // enough to sample with, and exact whenever the band is not
         // changing shape.
-        sample(band.state, band.centre.length, band.centre.closed, time, frame);
+        sample(band.state, band.centre.length, band.centre.closed, time, frame, band.levels === undefined);
       }
       if (!(frame.width > 0)) continue;
 
@@ -222,7 +245,9 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
         band.centreAt = centreAt;
         band.centre = offset(base, centreAt);
         // The new centreline has a new length, and spin is measured in laps.
-        if (!atRest) sample(band.state, band.centre.length, band.centre.closed, time, frame);
+        if (!atRest) {
+          sample(band.state, band.centre.length, band.centre.closed, time, frame, band.levels === undefined);
+        }
       }
       const centre = band.centre;
       const cyclic = centre.closed || (!atRest && travels(band.state, centre.closed));
@@ -236,7 +261,15 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
           anchors: centre.anchors,
           random,
         });
+        band.parts = band.levels === undefined ? 0 : partCount(band.dashes, centre.length);
       }
+      if (band.levels !== undefined) {
+        band.levels.length = band.parts;
+        for (let part = 0; part < band.parts; part++) {
+          band.levels[part] = atRest ? 1 : partLevel(band.state, part, time);
+        }
+      }
+      if (band.hatch !== undefined) band.hatch.shift = atRest ? 0 : band.hatchDrift * time;
       if (band.shownFor !== centre || band.shownValue !== frame.value) {
         band.shownFor = centre;
         band.shownValue = frame.value;
@@ -251,6 +284,8 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
       layer.patternLength = centre.length;
       layer.phase = frame.phase;
       layer.opacity = frame.opacity;
+      layer.hatch = band.hatch;
+      layer.levels = band.levels;
       scene.layers.push(layer);
     }
     return scene;
@@ -278,7 +313,7 @@ export function createPlayer(spec: HudSpec, width: number, height: number, still
     markup: (time) => svgMarkup(draw(time)),
     active(time) {
       for (const band of bands) {
-        if (moving(band.state, band.centre.closed, time)) return true;
+        if (band.hatchDrift !== 0 || moving(band.state, band.centre.closed, time)) return true;
       }
       return false;
     },
@@ -336,4 +371,8 @@ function mixSeeds(seed: number, hostSeed: number): number {
 
 function finiteOr(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) ? value : fallback;
+}
+
+function positiveOr(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) && value > 0 ? value : fallback;
 }

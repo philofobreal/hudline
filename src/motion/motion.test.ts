@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { begin, moving, sample, steer, travels } from './band.js';
+import { begin, moving, partLevel, sample, steer, travels } from './band.js';
 import type { BandFrame, BandTarget } from './band.js';
 import { noise } from './noise.js';
 import { rest, retarget, settled, valueAt } from './spring.js';
@@ -137,6 +137,16 @@ test('flicker lowers opacity by at most its depth and is repeatable', () => {
     sample(state, 100, true, 3.3, frame()).opacity,
     sample(state, 100, true, 3.3, frame()).opacity,
   );
+});
+
+test('flicker can be applied part by part instead of to the whole band', () => {
+  const state = begin({ ...idle, motion: { flicker: { seed: 4, rate: 5, depth: 0.6 } } });
+  assert.equal(sample(state, 100, true, 3.3, frame(), false).opacity, 1);
+  const levels = [0, 1, 2, 3].map((part) => partLevel(state, part, 3.3));
+  for (const level of levels) assert.ok(level >= 0.4 && level <= 1);
+  assert.equal(new Set(levels).size, 4);
+  assert.equal(partLevel(state, 2, 3.3), levels[2]);
+  assert.equal(partLevel(begin(idle), 0, 3.3), 1);
 });
 
 test('breathing swings the offset around its resting value', () => {

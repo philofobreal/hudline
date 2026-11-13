@@ -27,7 +27,10 @@ Use these terms in code, comments and docs. Do not introduce synonyms.
 | Segments | szegmensek | Pattern of equal drawn intervals with gaps |
 | Ticks | tickek | Pattern of very short intervals at even spacing |
 | Blocks | blokkok | Seeded irregular intervals |
-| Addressable band | címezhető sáv | Band whose segments are separate elements |
+| Addressable band | címezhető sáv | Band whose parts are separate elements and flicker one by one |
+| Part | rész | One drawn interval of a pattern; one that crosses the seam counts once |
+| Fill | kitöltés | What a band's drawn parts are painted with: solid or hatch |
+| Hatch | csíkozás | Diagonal stripes as a fill; they can move while the band stays put |
 | Spin | forgás | Rigid rotation of a ring band |
 | Drift | sodródás | Phase motion of a pattern along a track |
 | Draw-on | kirajzolódás | Revealing a band from zero to full length |

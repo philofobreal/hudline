@@ -19,3 +19,4 @@ export type { Hud } from './attach.js';
 export { createPlayer, renderToString } from './player.js';
 export type { Player } from './player.js';
 export type { BandOverride, BandSpec, HudSpec, StateSpec } from './spec.js';
+export type { HatchSpec } from '../surface/index.js';

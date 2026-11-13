@@ -241,3 +241,22 @@ Rejected: Creating every element up front (hidden elements for bands that may ne
 Decision: `npm run selftest` writes a page that exercises `attach` with real events, observers and layout and reports each check. It is run by hand or headless; it is not part of `npm run check`, which has no browser.
 Why: The unit tests for `mount` run against a stand-in DOM, which proves logic and can hide what a browser does differently. Two defects in one day were of that kind.
 Rejected: A browser-automation dependency; trusting the stand-in.
+
+## D-039 Every state of a catalogue entry changes its first band
+2026-11-14 · Status: accepted (the maintainer reported the defect and delegated the fix)
+Decision: In every catalogue entry, `hover` and `alert` change the first band, which is the outermost and is drawn as long as anything is. Two tests enforce it: one checks the rule, one renders every entry in every state at seven sizes down to 20 px and fails if a state changes nothing.
+Why: On the smallest scale ring and block ring, hover changed only bands that a small host leaves out, so pointing at them did nothing. Six entries had this defect at some size. The library cannot invent a reaction; the spec has to ask for one that survives.
+Rejected: Keeping inner bands on small hosts (they clot); leaving it to whoever looks at the gallery.
+
+## D-040 Hatch is a paint, not a pattern
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: `BandSpec.fill` may be `{ kind: 'hatch', angle, stripe, gap, drift }`. The band's pattern still says where the band is drawn; the hatch says what it is drawn with. In SVG it is a pattern used as stroke paint, turned to its angle and moved across itself for drift. A live surface gives each band its own pattern with an id unique in the document; standalone markup names patterns after what they look like, so identical ones may be shared.
+Why: Stripes that move inside a shape that stays put were part of the original brief, and F6 could not be expressed without them. Keeping where and what apart lets any pattern be hatched.
+Rejected: Hatch as a pattern kind (it is not a set of intervals along the track); clipping drawn lines to the band (many elements for what one paint does).
+Known limit: a state cannot change the fill.
+
+## D-041 Addressable bands
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: A band with `addressable: true` is drawn as one element per part of its pattern, and its flicker dims the parts one by one, each on its own curve. An interval that crosses the seam is one part.
+Why: The field had been accepted by the type since M0 and honoured by nothing. Blocks that blink independently are a signature of the look.
+Rejected: Removing the field (the look needs it); one element per part for every band (most bands need one element).

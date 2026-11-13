@@ -1,5 +1,6 @@
 import type { MotionSpec } from '../motion/index.js';
 import type { PatternSpec } from '../pattern/index.js';
+import type { HatchSpec } from '../surface/index.js';
 import type { ShapeSpec } from '../track/index.js';
 
 /**
@@ -28,9 +29,15 @@ export interface BandSpec {
   readonly opacity?: number;
   readonly motion?: MotionSpec;
   /**
-   * Render every interval as its own element so that it can flicker or
-   * be styled alone. Costs nodes; default false. Not honoured before
-   * milestone M5.
+   * What the drawn parts of the band are painted with. Default: solid.
+   * A hatch paints diagonal stripes, which can move while the band's
+   * shape stays put.
+   */
+  readonly fill?: HatchSpec;
+  /**
+   * Draw every part of the pattern as its own element, so that flicker
+   * dims the parts one by one instead of the band as a whole. Costs one
+   * element per part; default false.
    */
   readonly addressable?: boolean;
 }

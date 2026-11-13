@@ -2,7 +2,7 @@
 
 Status: milestone M0 closed. The maintainer delegated the open decisions to the agent's recommendations on 2026-11-13 (see `DECISIONS.md`, D-011 to D-016).
 
-The entries below come from the maintainer's reference images. Nine of ten are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. All nine render and move: `npm run gallery` writes `gallery.html`, in which every entry is attached to a plain element with `attach`: the frames at three sizes plus one that can be resized by hand, the rings at three sizes, two panels whose padding comes from the published insets, and a gauge driven by `update`. Pointing at a shape enters its `hover` state; buttons set `alert` and replay `enter`.
+The entries below come from the maintainer's reference images. All ten are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. All ten render and move: `npm run gallery` writes `gallery.html`, in which every entry is attached to a plain element with `attach`: the frames at three sizes plus one that can be resized by hand, the rings at three sizes, two panels whose padding comes from the published insets, and a gauge driven by `update`. Pointing at a shape enters its `hover` state; buttons set `alert` and replay `enter`.
 
 ## Rings
 
@@ -10,7 +10,7 @@ The entries below come from the maintainer's reference images. Nine of ten are w
 |---|---|---|
 | R1 | Segmented ring: thin circle, thicker inner band of 12 equal segments | two bands, `segments`, spin |
 | R2 | Scale ring: 60 short ticks, 12 long ticks, thin circle | two tick bands sharing an offset; tick thinning |
-| R3 | Irregular block ring: four bands of seeded blocks turning at different speeds and directions | `blocks`, per-band spin, an addressable flickering band |
+| R3 | Irregular block ring: four bands of seeded blocks turning at different speeds and directions | `blocks`, per-band spin, an addressable band whose blocks flicker one by one |
 | R4 | Value arc: 270° guide with a thicker band filled to a value | open track, `value`, a state override |
 
 ## Frames
@@ -22,7 +22,7 @@ The entries below come from the maintainer's reference images. Nine of ten are w
 | F3 | Stepped frame: part of the bottom edge steps inward, a notch in the top edge | `step` with mixed position forms, an accent band outside the track on a step anchor |
 | F4 | Double frame: two outlines and thick accents on two corners | band offsets, spans on corner anchors |
 | F5 | Corner brackets: only the four corners are drawn, rounded | fillets, spans on all corner anchors |
-| F6 | Hatched edge strip: diagonal hatching alongside part of an edge | **not expressible yet**; diagonal hatch is not an interval pattern. Scheduled for M5 |
+| F6 | Hatched edge strip: moving diagonal stripes alongside the bottom edge | a hatch fill on a span that starts where a chamfer ends |
 
 ## How the open questions were settled
 
@@ -30,6 +30,10 @@ The entries below come from the maintainer's reference images. Nine of ten are w
 2. **Filled regions (F2, corner accents).** A fill is a band limited to a span. There is no separate fill concept. Band ends are cut square; slanted ends wait for the hatch work in M5. (D-013)
 3. **Corner-anchored intervals (F4, F5).** `track` publishes named anchors; the `spans` pattern refers to them by name. `pattern` stays ignorant of shapes. (D-013)
 4. **Positions along an edge.** Pixels from the start, the end or the centre, or a fraction, always in reading direction. (D-014)
+
+## Rule for every entry
+
+`hover` and `alert` must change the first band. On a small host the inner bands and the steps are left out, and a state that only touched those would change nothing visible. Tests enforce this at seven sizes down to 20 px.
 
 ## Known limits of the notation
 
@@ -40,5 +44,7 @@ The entries below come from the maintainer's reference images. Nine of ten are w
 - Steps and bands that were left out come back only with 4 px to spare. Tick, dot and segment counts still change exactly at their thresholds.
 - A filleted frame whose straight sides are consumed by a deep offset loses that band entirely.
 - Flicker and breathing switch on and off at once when a state changes `motion`; only numbers glide.
-- `addressable` is accepted but not yet honoured: a flickering band flickers as a whole until M5.
+- A span is measured along the track and does not stop at corners: on a host shorter than the span, F6's strip runs on around the corner.
+- A state cannot change a band's fill.
+- On a small ring a state such as faster spin is visible only as motion; a still picture of it looks like idle.
 - Block sizes are fixed pixels, so a seeded block band changes its arrangement when the host is resized. It is stable for a given size.

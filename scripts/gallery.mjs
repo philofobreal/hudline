@@ -18,6 +18,7 @@ const FRAMES = {
   F3: 'Stepped frame',
   F4: 'Double frame',
   F5: 'Corner brackets',
+  F6: 'Hatched edge strip',
 };
 const RING_SIZES = [48, 96, 200].map((size) => [size, size]);
 const FRAME_SIZES = [

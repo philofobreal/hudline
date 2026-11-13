@@ -116,6 +116,9 @@ export function moving(state: BandState, closed: boolean, time: number): boolean
  *
  * @param length Arc length of the band, which turns laps of spin into
  *   pixels.
+ * @param whole Whether flicker dims the band as a whole. Pass `false`
+ *   for a band whose parts flicker one by one; ask `partLevel` for each
+ *   part instead.
  */
 export function sample(
   state: BandState,
@@ -123,6 +126,7 @@ export function sample(
   closed: boolean,
   time: number,
   out: BandFrame,
+  whole = true,
 ): BandFrame {
   const motion = state.motion;
   const elapsed = Math.max(0, time - state.since);
@@ -135,7 +139,7 @@ export function sample(
 
   let opacity = clamp01(valueAt(state.opacity, time));
   const flicker = motion?.flicker;
-  if (flicker !== undefined) {
+  if (whole && flicker !== undefined) {
     opacity *= 1 - clamp01(flicker.depth) * noise(flicker.seed, time * finite(flicker.rate));
   }
 
@@ -146,6 +150,21 @@ export function sample(
   out.opacity = opacity;
   out.phase = state.drifted + speed(motion?.drift) * elapsed + laps * length;
   return out;
+}
+
+/**
+ * How bright one part of a band is at `time`, 0–1, when the band's
+ * flicker is applied part by part. Every part follows its own curve, so
+ * neighbours do not dim together. 1 when the band does not flicker.
+ *
+ * @param part Which part, counted from 0 along the band.
+ */
+export function partLevel(state: BandState, part: number, time: number): number {
+  const flicker = state.motion?.flicker;
+  if (flicker === undefined) return 1;
+  // A large odd step keeps the curves of neighbouring parts unrelated.
+  const seed = (flicker.seed | 0) + Math.imul(part + 1, 0x632be5ab);
+  return 1 - clamp01(flicker.depth) * noise(seed, time * finite(flicker.rate));
 }
 
 function speed(value: number | undefined): number {

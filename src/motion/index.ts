@@ -9,9 +9,9 @@
  *
  * Interface: `begin(target) → BandState`, `steer(state, target, time,
  * settle) → BandState` and `sample(state, length, closed, time, out)`,
- * plus `travels`, `moving` and `createRandom`.
+ * plus `travels`, `moving`, `partLevel` and `createRandom`.
  */
-export { begin, moving, sample, steer, travels } from './band.js';
+export { begin, moving, partLevel, sample, steer, travels } from './band.js';
 export type { BandFrame, BandState, BandTarget } from './band.js';
 export { createRandom } from './random.js';
 export type { Random } from './random.js';

@@ -161,7 +161,28 @@ async function run() {
   hud.detach();
   hud.set('alert');
 
-  // 12. Elements that cannot hold a drawing.
+  // 12. Hatch and part-by-part bands, as a browser sees them.
+  const hatched = host(240, 100);
+  attach(hatched, catalog.F6);
+  await wait(2200);
+  const pattern = hatched.querySelector('svg > defs > pattern');
+  const strip = paths(hatched)[1];
+  check('a hatched band is painted with its own pattern', pattern !== null && strip.getAttribute('stroke') === 'url(#' + pattern.id + ')');
+  check('the stripes take the host colour', pattern !== null && getComputedStyle(pattern.firstElementChild).fill === getComputedStyle(hatched).color, pattern && getComputedStyle(pattern.firstElementChild).fill);
+  const moved = pattern.getAttribute('patternTransform');
+  await wait(400);
+  check('the stripes move', pattern.getAttribute('patternTransform') !== moved);
+  const stripLength = Number(strip.getAttribute('stroke-dasharray').split(' ')[0]);
+  check('the strip is one stretch of the length the span asks for', stripLength > 55 && stripLength < 75, strip.getAttribute('stroke-dasharray'));
+
+  const blocks = host(200, 200);
+  attach(blocks, catalog.R3);
+  await wait(2200);
+  const drawn = paths(blocks).filter(shown);
+  const levels = new Set(drawn.map((path) => path.getAttribute('opacity')));
+  check('a band drawn part by part has many elements with differing brightness', drawn.length > 8 && levels.size > 3, drawn.length + ' paths, ' + levels.size + ' levels');
+
+  // 13. Elements that cannot hold a drawing.
   const image = stage.appendChild(document.createElement('img'));
   attach(image, catalog.F1).set('alert');
   check('an img is left alone', image.children.length === 0 && image.style.position === '');
@@ -191,7 +212,7 @@ const html = `<!doctype html>
   ul { list-style: none; padding: 0; white-space: pre; }
   .bad { color: #ff8a7a; }
 </style>
-<strong id="summary">running, about 20 seconds…</strong>
+<strong id="summary">running, about 25 seconds…</strong>
 <ul id="list"></ul>
 <div id="stage"></div>
 <script>

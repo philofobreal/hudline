@@ -42,6 +42,9 @@ class FakeElement {
     this.attributes.delete(name);
     this.writes++;
   }
+  get firstChild(): FakeElement | null {
+    return this.children[0] ?? null;
+  }
   appendChild(child: FakeElement): FakeElement {
     return this.insertBefore(child, null);
   }
@@ -147,7 +150,8 @@ function host(width = 200, height = 100, name = 'div'): FakeElement {
 }
 const mount = (element: FakeElement, spec: HudSpec) => attach(element as unknown as Element, spec);
 const svgOf = (element: FakeElement) => element.children.filter((child) => child.localName === 'svg');
-const pathsOf = (element: FakeElement) => svgOf(element)[0]?.children ?? [];
+const pathsOf = (element: FakeElement) =>
+  (svgOf(element)[0]?.children ?? []).filter((child) => child.localName === 'path');
 const attribute = (element: FakeElement, band: number, name: string) =>
   pathsOf(element)[band]?.attributes.get(name);
 const resetWrites = (element: FakeElement) => pathsOf(element).forEach((path) => (path.writes = 0));
@@ -202,6 +206,63 @@ test('bands are stacked in the order of the spec, whichever is drawn first', () 
   assert.deepEqual(pathsOf(element).map((path) => path.attributes.get('stroke-width')), ['3']);
   settle();
   assert.deepEqual(pathsOf(element).map((path) => path.attributes.get('stroke-width')), ['2', '5', '3']);
+});
+
+test('a hatched band gets its own pattern, and moving stripes cost one attribute per frame', () => {
+  const element = host();
+  const other = host();
+  const spec: HudSpec = {
+    shape: { kind: 'frame' },
+    bands: [{ width: 8, fill: { kind: 'hatch', stripe: 3, gap: 3, drift: 12 } }],
+  };
+  const hud = mount(element, spec);
+  const otherHud = mount(other, spec);
+  const patternOf = (target: FakeElement) =>
+    svgOf(target)[0]?.children.find((child) => child.localName === 'defs')?.children[0];
+  const pattern = patternOf(element);
+  assert.ok(pattern !== undefined);
+  assert.equal(pattern.attributes.get('width'), '6');
+  assert.equal(attribute(element, 0, 'stroke'), `url(#${pattern.attributes.get('id')})`);
+  // Ids are unique in the document, so two hosts never share a pattern.
+  assert.notEqual(pattern.attributes.get('id'), patternOf(other)?.attributes.get('id'));
+
+  frames(3);
+  resetWrites(element);
+  pattern.writes = 0;
+  const before = pattern.attributes.get('patternTransform');
+  frames(10);
+  assert.equal(writes(element), 0);
+  assert.equal(pattern.writes, 10);
+  assert.notEqual(pattern.attributes.get('patternTransform'), before);
+  hud.detach();
+  otherHud.detach();
+  settle();
+});
+
+test('a band drawn part by part has one element per part, dimmed one by one', () => {
+  const element = host(100, 100);
+  const hud = mount(element, {
+    shape: { kind: 'ring' },
+    bands: [
+      { width: 2 },
+      {
+        offset: 6,
+        width: 6,
+        pattern: { kind: 'segments', count: 5, gap: 4 },
+        motion: { flicker: { seed: 3, rate: 8, depth: 0.9 } },
+        addressable: true,
+      },
+      { offset: 16, width: 2 },
+    ],
+  });
+  frames(5);
+  const widths = pathsOf(element).map((path) => path.attributes.get('stroke-width'));
+  // One outline, five parts in the middle, one inner line, in that order.
+  assert.deepEqual(widths, ['2', '6', '6', '6', '6', '6', '2']);
+  const levels = pathsOf(element).slice(1, 6).map((path) => path.attributes.get('opacity'));
+  assert.ok(new Set(levels).size >= 4, `parts should differ: ${levels}`);
+  hud.detach();
+  settle();
 });
 
 test('a static host becomes relative; any other position is left alone', () => {

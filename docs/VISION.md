@@ -16,7 +16,7 @@ A general way to give existing DOM elements the look of film and game HUDs: clea
 
 - Frames: closed outlines with corner operators (chamfer, fillet) and the edge operator (step, which also makes tabs and notches), multiple bands, partial outlines, corner brackets.
 - Rings: concentric bands, open arcs, equal segments, ticks, dots, seeded irregular blocks, value arcs (progress).
-- Motion: drift along the track, rigid rotation, draw-on, value transitions, noise-driven flicker, state transitions.
+- Motion: drift along the track, rigid rotation, draw-on, value transitions, noise-driven flicker of a band or of its parts one by one, moving hatch stripes, state transitions.
 - Reactions: pointer and focus, host resize, visibility, element insertion and removal, custom state changes.
 - Renderer: SVG.
 - Up to 50 animated elements per page.

@@ -20,8 +20,8 @@ A ring is a track that is a circle. A frame is a track that is a closed polygon 
 |---|---|---|
 | `track` | All geometry: the angle convention, corner and edge operators, detail dropping, offsets and when they collapse, arc length | `resolve(shape, width, height) → Track`, `offset(track, distance) → Track`, `portion(track, share) → Track`, `holds(track, from, to) → boolean`, `widest(track, from, wanted) → number`, `clearance(track, depth) → Insets` |
 | `pattern` | Layout of each pattern kind, seam fitting, thinning on short bands, wrapping and merging of intervals | `compile(spec, context) → Dashes` |
-| `motion` | Springs, noise, how travel accumulates across changes of speed, seeded randomness | `begin(target) → BandState`, `steer(state, target, time, settle) → BandState`, `sample(state, length, closed, time, out)`, `moving(state, closed, time)` |
-| `surface` | How bands become SVG elements and dash arrays; which elements a live drawing has and what is written on each paint; later canvas drawing | `svgMarkup(scene) → string`, `createSvgSurface(host) → SvgSurface` |
+| `motion` | Springs, noise, how travel accumulates across changes of speed, seeded randomness | `begin(target) → BandState`, `steer(state, target, time, settle) → BandState`, `sample(state, length, closed, time, out)`, `moving(state, closed, time)`, `partLevel(state, part, time)` |
+| `surface` | How bands become SVG elements and dash arrays; how a hatch is painted; how a band is split into parts; which elements a live drawing has and what is written on each paint; later canvas drawing | `svgMarkup(scene) → string`, `createSvgSurface(host) → SvgSurface`, `partCount(dashes, patternLength)` |
 | `mount` | How a spec is played (which bands fit, seed mixing, states to targets, what is recomputed when); observers, the shared loop, lifecycle, turning DOM events into states | the public API: `attach`, `createPlayer`, `renderToString` |
 | `catalog` | Nothing; it is data: the catalogue entries as typed specs, later the presets | `catalog` |
 
@@ -45,6 +45,7 @@ Each module owns the part of the spec language that describes its own decisions,
 | `ShapeSpec`, corner and edge operators, `Along` | `track` |
 | `PatternSpec`, `Span` | `pattern` |
 | `MotionSpec` | `motion` |
+| `HatchSpec` | `surface` |
 | `BandSpec`, `StateSpec`, `HudSpec` | `mount` |
 
 ### What crosses module boundaries
@@ -114,9 +115,11 @@ A band that only travels or flickers costs one `sample` and one changed attribut
 - Listeners on the host: `pointerenter`, `pointerleave`, `pointerdown`, `pointerup`, `pointercancel`, `focusin`, `focusout`, all passive. Everything is removed on detach.
 - Void elements (`img`, `input` and the like) are not supported: `attach` returns a handle that does nothing.
 
-## 6. Addressable bands
+## 6. Fill and addressable bands
 
-A dashed stroke cannot address its segments one by one. A band that needs per-segment flicker or per-segment width is marked addressable and is rendered as separate elements. This is opt-in because it costs nodes.
+A band's pattern says where it is drawn; its fill says with what. The default is solid colour. A hatch paints moving diagonal stripes: in SVG a pattern used as stroke paint, one per band in a live drawing, with an id unique in the document.
+
+A dashed stroke cannot address its parts one by one. A band marked `addressable` is drawn as one element per part of its pattern, and its flicker dims each part on its own curve. This is opt-in because it costs one element and one attribute write per part and frame.
 
 ## 7. Performance
 

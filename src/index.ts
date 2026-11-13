@@ -21,7 +21,7 @@ export type {
 } from './track/index.js';
 export type { PatternSpec, Span } from './pattern/index.js';
 export type { MotionSpec, Random } from './motion/index.js';
-export type { BandOverride, BandSpec, HudSpec, StateSpec } from './mount/index.js';
+export type { BandOverride, BandSpec, HatchSpec, HudSpec, StateSpec } from './mount/index.js';
 
 export { attach, createPlayer, renderToString } from './mount/index.js';
 export type { Hud, Player } from './mount/index.js';
