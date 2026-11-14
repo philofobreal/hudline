@@ -441,6 +441,26 @@ test('nothing is painted while the host is out of sight', () => {
   settle();
 });
 
+test('out of view the drawing waits: its draw-on plays when it is first seen', () => {
+  const element = host(100, 100);
+  const hud = mount(element, {
+    shape: { kind: 'ring' },
+    bands: [{ id: 'line', width: 2 }],
+    states: { enter: { bands: { line: { value: 0 } }, settle: 1 } },
+  });
+  sight(element, false);
+  // A long time passes out of view.
+  frames(5, 10);
+  sight(element, true);
+  frames(2);
+  const early = attribute(element, 0, 'd') ?? '';
+  // Barely begun: a short arc, not the full circle.
+  assert.doesNotMatch(early, /A49 49 0 0 1 50 99A/);
+  settle();
+  assert.match(attribute(element, 0, 'd') ?? '', /A49 49 0 0 1 50 99A49 49 0 0 1 50 1$/);
+  hud.detach();
+});
+
 test('with reduced motion patterns stand still and states change at once', () => {
   setReduced(true);
   const element = host(100, 100);

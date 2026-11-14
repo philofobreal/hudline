@@ -149,6 +149,17 @@ async function run() {
   far.scrollIntoView();
   await wait(300);
   check('and animates once it is in view', (await writesDuring(far, 400)) > 0);
+  // A drawing that was never seen has its draw-on ahead of it.
+  const unseen = host(100, 100, 'margin-top:3000px');
+  attach(unseen, presets['ring-scale']);
+  await wait(2500);
+  unseen.scrollIntoView();
+  await frames(4);
+  const outline = paths(unseen)[0];
+  check('a drawing scrolled to for the first time is still drawing on', outline.getAttribute('d').split('A').length <= 2, outline.getAttribute('d'));
+  await wait(2200);
+  check('and finishes once in view', outline.getAttribute('d').split('A').length === 3, outline.getAttribute('d'));
+  unseen.remove();
   window.scrollTo(0, 0);
 
   // 11. Leaving.

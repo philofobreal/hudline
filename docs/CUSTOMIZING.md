@@ -147,6 +147,26 @@ Nothing checks the file. A value that makes no sense does not throw: the band or
 | Two elements with the same spec that should not look identical | `seed` in the spec | changes seeded blocks and flicker only |
 | The shape, a pattern or a fill | `attach(element, newSpec)` | replaces the spec; the draw-on plays again |
 
+## 6. Recipes from the reference image
+
+`examples/reference/hud.json` rebuilds the circle and rectangle forms of the maintainer's black-and-white reference from configuration alone; `npm run reference` writes the page. What it uses:
+
+| Form | How |
+|---|---|
+| A panel with one round end | A frame whose two corners on that side are fillets with a radius far larger than the box (`999`). Corners that ask for more than an edge has shrink together, so each ends up half the height |
+| A grey body | A wide, faint band: `width` just under half the box height, `opacity` around 0.1. It must fit in idle, so the height has to be known |
+| The thick cap on the round end | A band on `spans` over both round corners. Spans that touch draw as one stretch |
+| Arc fragments inside the round end | Bands further in, each on spans over the same corners, trimmed with negative `before` and `after`. A band that follows a round end at a deeper offset is a concentric arc |
+| A thick foot at a corner | A span on a corner anchor, widened along both edges |
+| A bar code | A `line` with a band of seeded `blocks`, a pixel or a few wide |
+| A window of moving scan lines | A frame with a wide band filled with an upright `hatch` |
+| A stepped envelope line | A `line` with one step; a thick band on the step's anchor marks its top |
+| A dial | A ring with many bands: blocks, segments and ticks, turning at different speeds, one `addressable` and flickering |
+
+A panel is several elements, one inside the other, each with its own `data-hud`: the library draws one shape per element and leaves the arrangement to the page.
+
+What the reference has and none of this can make: waveforms, bars of differing height (a band has one width), perspective, and areas filled other than by a band.
+
 ## What cannot be varied
 
 - A state changes `offset`, `width`, `value`, `opacity` and `motion` of a band. It cannot change a band's pattern or fill, or the shape.

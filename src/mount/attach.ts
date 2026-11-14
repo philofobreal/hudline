@@ -39,8 +39,9 @@ export interface Hud {
  *   entered and left automatically if the spec defines them, `active`
  *   before `focus` before `hover`;
  * - leaving the viewport, a hidden page and `prefers-reduced-motion`:
- *   nothing is animated then, and with reduced motion states change at
- *   once and patterns stand still;
+ *   nothing is animated then. Out of view the drawing's time stands
+ *   still, so its draw-on plays when it is first seen. With reduced
+ *   motion states change at once and patterns stand still;
  * - the element leaving the document: the drawing detaches itself.
  *
  * The room content should leave around the edges is published on the
@@ -159,10 +160,19 @@ function createInstance(host: Element, initialSpec: HudSpec): Instance {
   let requested = 'idle';
   let shownState = 'idle';
   let visible = true;
+  /** The page time at which the host went out of view, while it is. */
+  let hiddenAt: number | undefined;
   let dirty = true;
   let wasAnimating = false;
   let detached = false;
   const flags = { hover: false, focus: false, active: false };
+
+  /**
+   * The drawing's own time. It stands still while the host is out of
+   * view, so a drawing that is scrolled to starts where it left off, and
+   * one that has never been seen still has its draw-on ahead of it.
+   */
+  const playerTime = (): number => (hiddenAt ?? clock()) - origin;
 
   /** The state to show: what was asked for, or an automatic one over idle. */
   function resolveState(): void {
@@ -177,7 +187,7 @@ function createInstance(host: Element, initialSpec: HudSpec): Instance {
     }
     if (next === shownState) return;
     shownState = next;
-    player.set(next, clock() - origin);
+    player.set(next, playerTime());
     invalidate();
   }
 
@@ -232,7 +242,7 @@ function createInstance(host: Element, initialSpec: HudSpec): Instance {
       },
       update(bands) {
         if (detached) return;
-        player.update(bands, clock() - origin);
+        player.update(bands, playerTime());
         publishInsets();
         invalidate();
       },
@@ -241,6 +251,7 @@ function createInstance(host: Element, initialSpec: HudSpec): Instance {
     respec(next) {
       spec = next;
       origin = clock();
+      if (hiddenAt !== undefined) hiddenAt = origin;
       player = createPlayer(spec, width, height);
       requested = 'idle';
       shownState = 'idle';
@@ -263,8 +274,16 @@ function createInstance(host: Element, initialSpec: HudSpec): Instance {
       invalidate();
     },
     setVisible(next) {
+      if (next === visible) return;
       visible = next;
-      if (next) invalidate();
+      if (!next) {
+        hiddenAt = clock();
+        return;
+      }
+      // Take the time spent out of view out of the drawing's clock.
+      if (hiddenAt !== undefined) origin += clock() - hiddenAt;
+      hiddenAt = undefined;
+      invalidate();
     },
     frame(now) {
       if (detached) return false;

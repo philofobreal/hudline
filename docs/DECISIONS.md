@@ -301,3 +301,9 @@ Found on the way: hysteresis made a step that ends on the end of its run impossi
 Decision: Each preset is declared with `satisfies HudSpec` instead of being annotated as `HudSpec`, so `presets['frame-tabbed'].shape` is known to be a frame and can be spread into a new frame. `docs/CUSTOMIZING.md` shows five ways of making a spec, and `src/catalog/customise.test.ts` compiles and runs every example in it.
 Why: The maintainer asked how to vary drawings from configuration. Writing the answer down showed that the obvious way of extending a preset's shape did not type-check. An untested guide would have shipped that mistake.
 Rejected: Parameterised preset functions in the library (D-043 stands: a spec is the configuration, and a function of options is three lines in user code).
+
+## D-048 Rebuilding the reference forms, and what it changed
+2026-11-14 · Status: accepted (the maintainer asked for the attempt)
+Decision: `examples/reference/hud.json` and `npm run reference` rebuild the circle and rectangle forms of the black-and-white reference image from configuration. Two library changes came out of it. Spans that touch or overlap are joined before their ends are trimmed, so two neighbouring corners named one after the other draw as one stretch. And a drawing's clock stands still while its host is out of view, so a draw-on plays when the drawing is first seen instead of having silently finished.
+Why: The cap of a round-ended panel needs both round corners as one stretch, and a hair's gap showed between them. The second came from chasing what looked like a stuck drawing: it was correctly paused below the fold, but once scrolled to it would have appeared fully drawn.
+What could not be rebuilt: waveforms, bars of differing height, perspective, filled areas other than bands. These stay non-goals; the guide says so.

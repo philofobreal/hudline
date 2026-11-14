@@ -79,7 +79,7 @@ drawScene(context, player.scene(time), { x, y, color });   // the same on a 2D c
 | Host resize | `track.resolve` with the previous track; band geometry is rebuilt on the next frame; insets are published |
 | Animation frame | For each visible drawing that still changes: `motion.sample` per band, then a paint that writes only what differs |
 | State change, `update` | `motion.steer`: new transitions. A pattern is laid out again only if the change makes it start or stop travelling |
-| Host out of view, page hidden | Nothing |
+| Host out of view, page hidden | Nothing, and the drawing's own clock stands still: it carries on where it left off, and a draw-on that was never seen is still to come |
 | Reduced motion | States change at once, patterns stand still, nothing animates |
 
 One `requestAnimationFrame` loop serves all drawings. It runs only while some visible drawing still changes and stops by itself.

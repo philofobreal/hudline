@@ -179,6 +179,12 @@ test('spans follow anchors, widen and trim, and ignore unknown names', () => {
   near(compile(spec, { ...context, cyclic: false }).intervals, [0, 14.95, 44.05, 55.95]);
 });
 
+test('spans on neighbouring anchors draw as one stretch', () => {
+  const context = { ...closed(200), anchors: { tr: { start: 40, end: 60 }, br: { start: 60, end: 80 } } };
+  const spec = { kind: 'spans', spans: [{ anchor: 'br' }, { anchor: 'tr' }] } as const;
+  near(compile(spec, context).intervals, [40.05, 79.95]);
+});
+
 test('a span on an anchor ends just inside the anchor, never on its corners', () => {
   const context = { ...closed(100), anchors: { tab: { start: 40, end: 60 } } };
   const [start, end] = compile({ kind: 'spans', spans: [{ anchor: 'tab' }] }, context).intervals;

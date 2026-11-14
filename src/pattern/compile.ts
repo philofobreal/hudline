@@ -104,23 +104,37 @@ export function compile(spec: PatternSpec, context: PatternContext): Dashes {
         'butt',
       );
 
-    case 'spans':
+    case 'spans': {
+      const raw: [number, number][] = [];
+      for (const span of spec.spans) {
+        const anchor = context.anchors?.[span.anchor];
+        if (anchor === undefined) continue;
+        const start = anchor.start - finiteOr(span.before, 0);
+        const end = anchor.end + finiteOr(span.after, 0);
+        if (end > start) raw.push([start, end]);
+      }
+      // Spans that touch or overlap are one stretch: two neighbouring
+      // corners named one after the other draw without a break.
+      raw.sort((a, b) => a[0] - b[0]);
+      const joined: [number, number][] = [];
+      for (const [start, end] of raw) {
+        const last = joined[joined.length - 1];
+        if (last !== undefined && start <= last[1] + 1e-6) last[1] = Math.max(last[1], end);
+        else joined.push([start, end]);
+      }
+      // An anchor's ends are corners of the track. A dash that ends
+      // exactly on a corner picks up a sliver of the turn there, or not,
+      // depending on the last decimal; pulled in by a hair, its end is a
+      // clean cut across the band whatever the rounding.
       return normalize(
-        spec.spans.flatMap((span) => {
-          const anchor = context.anchors?.[span.anchor];
-          if (anchor === undefined) return [];
-          // An anchor's ends are corners of the track. A dash that ends
-          // exactly on a corner picks up a sliver of the turn there, or
-          // not, depending on the last decimal; pulled in by a hair, its
-          // end is a clean cut across the band whatever the rounding.
-          const start = anchor.start - finiteOr(span.before, 0) + SPAN_INSET;
-          const end = anchor.end + finiteOr(span.after, 0) - SPAN_INSET;
-          return end > start ? [[start, end] as const] : [];
-        }),
+        joined
+          .map(([start, end]) => [start + SPAN_INSET, end - SPAN_INSET] as const)
+          .filter(([start, end]) => end > start),
         length,
         closed,
         'butt',
       );
+    }
   }
 }
 

@@ -26,7 +26,8 @@
     "gallery": "npm run build && node scripts/gallery.mjs",
     "perf": "npm run build && node scripts/perf.mjs",
     "selftest": "npm run build && node scripts/selftest.mjs",
-    "motion": "npm run build && node scripts/motion-check.mjs"
+    "motion": "npm run build && node scripts/motion-check.mjs",
+    "reference": "npm run build && node scripts/reference.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

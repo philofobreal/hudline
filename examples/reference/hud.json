@@ -1,0 +1,130 @@
+{
+  "dial": {
+    "shape": { "kind": "ring", "inset": 2 },
+    "bands": [
+      { "id": "rim", "width": 6 },
+      { "id": "blocks-a", "offset": 9, "width": 7, "opacity": 0.35,
+        "pattern": { "kind": "blocks", "seed": 11, "min": 6, "max": 30, "gap": 2 }, "motion": { "spin": 6 } },
+      { "id": "beads", "offset": 18, "width": 3,
+        "pattern": { "kind": "segments", "count": 44, "gap": 2 }, "motion": { "spin": -10 } },
+      { "id": "blocks-b", "offset": 23, "width": 8, "opacity": 0.6, "addressable": true,
+        "pattern": { "kind": "blocks", "seed": 5, "min": 5, "max": 18, "gap": 2, "density": 0.85 },
+        "motion": { "spin": 14, "flicker": { "seed": 3, "rate": 1.5, "depth": 0.7 } } },
+      { "id": "line", "offset": 33, "width": 1.5 },
+      { "id": "blocks-c", "offset": 36, "width": 6,
+        "pattern": { "kind": "blocks", "seed": 21, "min": 3, "max": 12, "gap": 2 }, "motion": { "spin": -22 } },
+      { "id": "scale", "offset": 44, "width": 5, "opacity": 0.5,
+        "pattern": { "kind": "ticks", "count": 36, "thickness": 2 } },
+      { "id": "hub", "offset": 52, "width": 4 },
+      { "id": "core", "offset": 58, "width": 5, "opacity": 0.4,
+        "pattern": { "kind": "segments", "count": 6, "gap": 3 }, "motion": { "spin": 40 } }
+    ],
+    "states": {
+      "enter": { "bands": { "rim": { "value": 0 }, "line": { "value": 0 }, "hub": { "value": 0 } }, "settle": 1.1 },
+      "hover": { "bands": { "rim": { "width": 8 }, "blocks-c": { "motion": { "spin": -90 } }, "core": { "motion": { "spin": 200 } } } }
+    }
+  },
+
+  "panel-right": {
+    "shape": { "kind": "frame", "inset": 2,
+      "corners": { "tr": { "kind": "fillet", "radius": 999 }, "br": { "kind": "fillet", "radius": 999 } } },
+    "bands": [
+      { "id": "outline", "width": 1.5 },
+      { "id": "body", "width": 39.8, "opacity": 0.09 },
+      { "id": "cap", "width": 8,
+        "pattern": { "kind": "spans", "spans": [{ "anchor": "tr", "before": 12 }, { "anchor": "br", "after": 12 }] } },
+      { "id": "arc-a", "offset": 13, "width": 4,
+        "pattern": { "kind": "spans", "spans": [{ "anchor": "tr", "before": -4, "after": -14 }, { "anchor": "br", "before": -10, "after": -2 }] } },
+      { "id": "arc-b", "offset": 20, "width": 5, "opacity": 0.55,
+        "pattern": { "kind": "spans", "spans": [{ "anchor": "tr", "before": -10, "after": 4 }, { "anchor": "br", "before": -14, "after": -4 }] } },
+      { "id": "arc-c", "offset": 28, "width": 3,
+        "pattern": { "kind": "spans", "spans": [{ "anchor": "tr", "after": -6 }] } },
+      { "id": "foot", "width": 6,
+        "pattern": { "kind": "spans", "spans": [{ "anchor": "bl", "before": 36, "after": 20 }] } }
+    ],
+    "states": {
+      "enter": { "bands": { "outline": { "value": 0 }, "body": { "opacity": 0 }, "cap": { "opacity": 0 }, "foot": { "opacity": 0 } }, "settle": 1 },
+      "hover": { "bands": { "outline": { "width": 2.5 }, "body": { "opacity": 0.16 }, "arc-b": { "opacity": 1 } } }
+    }
+  },
+
+  "panel-left": {
+    "shape": { "kind": "frame", "inset": 2,
+      "corners": { "tl": { "kind": "fillet", "radius": 999 }, "bl": { "kind": "fillet", "radius": 999 } } },
+    "bands": [
+      { "id": "outline", "width": 1.5 },
+      { "id": "body", "width": 39.8, "opacity": 0.09 },
+      { "id": "cap", "width": 8,
+        "pattern": { "kind": "spans", "spans": [{ "anchor": "bl", "before": 12 }, { "anchor": "tl", "after": 12 }] } },
+      { "id": "arc-a", "offset": 14, "width": 4,
+        "pattern": { "kind": "spans", "spans": [{ "anchor": "bl", "before": -12, "after": -3 }, { "anchor": "tl", "before": -3, "after": -16 }] } },
+      { "id": "arc-b", "offset": 22, "width": 4, "opacity": 0.55,
+        "pattern": { "kind": "spans", "spans": [{ "anchor": "bl", "before": -2, "after": -12 }, { "anchor": "tl", "before": -10, "after": 2 }] } },
+      { "id": "arc-c", "offset": 29, "width": 3,
+        "pattern": { "kind": "spans", "spans": [{ "anchor": "tl", "before": 4, "after": -4 }] } }
+    ],
+    "states": {
+      "enter": { "bands": { "outline": { "value": 0 }, "body": { "opacity": 0 }, "cap": { "opacity": 0 } }, "settle": 1 },
+      "hover": { "bands": { "outline": { "width": 2.5 }, "body": { "opacity": 0.16 }, "arc-b": { "opacity": 1 } } }
+    }
+  },
+
+  "window": {
+    "shape": { "kind": "frame" },
+    "bands": [
+      { "id": "outline", "width": 1 },
+      { "id": "scan", "offset": 2, "width": 15.8, "opacity": 0.3,
+        "fill": { "kind": "hatch", "angle": 0, "stripe": 1, "gap": 3, "drift": 9 } }
+    ],
+    "states": { "hover": { "bands": { "outline": { "width": 2 }, "scan": { "opacity": 0.6 } } } }
+  },
+
+  "barcode": {
+    "shape": { "kind": "line", "inset": 1 },
+    "bands": [
+      { "id": "base", "width": 1 },
+      { "id": "bars", "offset": 3, "width": 9,
+        "pattern": { "kind": "blocks", "seed": 42, "min": 1, "max": 5, "gap": 2 } },
+      { "id": "marks", "offset": 14, "width": 3, "opacity": 0.5,
+        "pattern": { "kind": "ticks", "count": 60, "minSpacing": 3 } }
+    ],
+    "states": { "hover": { "bands": { "base": { "width": 2 }, "bars": { "motion": { "drift": 30 } } } } }
+  },
+
+  "bars": {
+    "shape": { "kind": "line", "inset": 1 },
+    "bands": [
+      { "id": "base", "width": 1 },
+      { "id": "columns", "offset": 2, "width": 34, "pattern": { "kind": "dashes", "dash": 6, "gap": 2 } },
+      { "id": "shade", "offset": 26, "width": 10, "opacity": 0.75,
+        "pattern": { "kind": "blocks", "seed": 9, "min": 8, "max": 8, "gap": 8, "density": 0.5 } }
+    ],
+    "states": { "hover": { "bands": { "base": { "width": 2 }, "columns": { "motion": { "drift": 12 } } } } }
+  },
+
+  "envelope": {
+    "shape": { "kind": "line", "inset": 1,
+      "steps": [{ "kind": "step", "id": "top", "from": { "fraction": 0.12 }, "to": { "fraction": 0.5 }, "depth": 16 }] },
+    "bands": [
+      { "id": "rule", "width": 1 },
+      { "id": "grid", "offset": -13, "width": 12, "opacity": 0.2,
+        "pattern": { "kind": "dashes", "dash": 5, "gap": 2 } },
+      { "id": "crest", "width": 3, "pattern": { "kind": "spans", "spans": [{ "anchor": "top" }] } }
+    ],
+    "states": { "hover": { "bands": { "rule": { "width": 2 } } } }
+  },
+
+  "lead": {
+    "shape": { "kind": "line", "inset": 4, "pad": 2,
+      "steps": [{ "kind": "step", "id": "high", "from": { "from": "start", "offset": 0 }, "to": { "fraction": 0.45 }, "depth": 9 }] },
+    "bands": [
+      { "id": "rule", "offset": -0.5, "width": 1 },
+      { "id": "stub", "width": 5, "pattern": { "kind": "spans", "spans": [{ "anchor": "high", "after": -30 }] } },
+      { "id": "tail", "offset": -1, "width": 2, "pattern": { "kind": "spans", "spans": [{ "anchor": "end", "before": 70 }] } }
+    ],
+    "states": {
+      "enter": { "bands": { "rule": { "value": 0 }, "stub": { "opacity": 0 } }, "settle": 1 },
+      "hover": { "bands": { "rule": { "offset": -1, "width": 2 }, "stub": { "width": 7 } } }
+    }
+  }
+}

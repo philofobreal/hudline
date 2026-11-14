@@ -81,6 +81,7 @@ npm run gallery   # writes a self-contained, animated gallery.html
 npm run perf      # writes perf.html: 50 drawings with a frame timer
 npm run selftest  # writes selftest.html: checks the DOM binding and canvas parity in a real browser
 npm run motion    # looks for jumps in every preset's transitions (needs rsvg-convert)
+npm run reference # writes reference.html: the reference image's forms, built from one JSON file
 ```
 
 Requires Node 22 or newer.
