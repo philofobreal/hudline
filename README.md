@@ -72,6 +72,14 @@ player.set('alert', performance.now() / 1000);   // states and sizes are yours t
 
 Both renderers draw the same scene; in Chrome they agree pixel for pixel within antialiasing. Without any DOM, `renderToString(spec, width, height)` gives a still SVG.
 
+## Using it from another project
+
+There is no registry release yet. Depend on a commit; the library builds itself on install:
+
+```
+npm install github:philofobreal/hudline#<commit>
+```
+
 ## Development
 
 ```

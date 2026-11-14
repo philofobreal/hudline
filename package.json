@@ -12,7 +12,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.test.*"
   ],
   "engines": {
     "node": ">=22"
@@ -21,6 +22,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "rules": "node scripts/check-rules.mjs",
     "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
     "test": "npm run build && node --test \"dist/**/*.test.js\"",
     "check": "npm run typecheck && npm run rules && npm test",
     "gallery": "npm run build && node scripts/gallery.mjs",

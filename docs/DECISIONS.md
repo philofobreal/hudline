@@ -307,3 +307,10 @@ Rejected: Parameterised preset functions in the library (D-043 stands: a spec is
 Decision: `examples/reference/hud.json` and `npm run reference` rebuild the circle and rectangle forms of the black-and-white reference image from configuration. Two library changes came out of it. Spans that touch or overlap are joined before their ends are trimmed, so two neighbouring corners named one after the other draw as one stretch. And a drawing's clock stands still while its host is out of view, so a draw-on plays when the drawing is first seen instead of having silently finished.
 Why: The cap of a round-ended panel needs both round corners as one stretch, and a hair's gap showed between them. The second came from chasing what looked like a stuck drawing: it was correctly paused below the fold, but once scrolled to it would have appeared fully drawn.
 What could not be rebuilt: waveforms, bars of differing height, perspective, filled areas other than bands. These stay non-goals; the guide says so.
+
+## D-049 Installable straight from the repository
+2026-11-14 · Status: accepted (the maintainer approved hudline as a dependency of plexus-engine)
+Decision: `package.json` gets a `prepare` script that builds `dist`, and the packed files leave the compiled tests out. Another project can then depend on a commit of this repository (`github:philofobreal/hudline#<commit>`) without a registry.
+Why: The first user outside this repository is the maintainer's own plexus-engine. A registry release would fix a public API that is still at 0.0.0; a pinned commit does not.
+Rejected: Publishing to npm now (commits to an API too early); committing `dist` (a build product in source control); copying the build into the other repository (two copies drift).
+Cost: installing from git builds the library on the user's machine, so it needs the dev dependency `typescript` to be fetched there.
