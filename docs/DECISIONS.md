@@ -295,3 +295,9 @@ A gear look is a preset, `ring-gear`, made from what already existed: a segmente
 Why: Dividers and callout rules are everywhere in the reference images, and a line is one side of a frame, so nearly all of it existed. Steps on a circle are different: the parallel of a radial wall is not radial, an offset can consume a whole tooth, and getting that wrong makes bands vanish. The look can be had without that risk.
 Rejected: Outline steps on rings now (a rewrite of the offset code for one look); connector lines between separate elements (a layout problem between elements, still a non-goal).
 Found on the way: hysteresis made a step that ends on the end of its run impossible to bring back, because it could never have room to spare there. Room to spare is now asked only at ends the step is not declared to sit on.
+
+## D-047 Presets keep their precise types; the customising guide is tested
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: Each preset is declared with `satisfies HudSpec` instead of being annotated as `HudSpec`, so `presets['frame-tabbed'].shape` is known to be a frame and can be spread into a new frame. `docs/CUSTOMIZING.md` shows five ways of making a spec, and `src/catalog/customise.test.ts` compiles and runs every example in it.
+Why: The maintainer asked how to vary drawings from configuration. Writing the answer down showed that the obvious way of extending a preset's shape did not type-check. An untested guide would have shipped that mistake.
+Rejected: Parameterised preset functions in the library (D-043 stands: a spec is the configuration, and a function of options is three lines in user code).

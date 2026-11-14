@@ -19,7 +19,7 @@ import type { HudSpec } from '../mount/index.js';
 const DRAW_ON = 0.9;
 
 /** R1 Segmented ring: thin circle, thicker inner band of 12 segments. */
-const segmentedRing: HudSpec = {
+const segmentedRing = {
   shape: { kind: 'ring', inset: 2 },
   bands: [
     { id: 'outline', width: 1 },
@@ -46,14 +46,14 @@ const segmentedRing: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /**
  * R2 Scale ring: 60 short ticks and 12 long ones. Both tick bands share
  * an offset, so they share their outer edge; the short ticks thin out in
  * multiples of 12, so they stay lined up with the long ones.
  */
-const scaleRing: HudSpec = {
+const scaleRing = {
   shape: { kind: 'ring', inset: 2 },
   bands: [
     { id: 'outline', width: 1 },
@@ -83,10 +83,10 @@ const scaleRing: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /** R3 Irregular block ring: seeded bands turning against each other. */
-const blockRing: HudSpec = {
+const blockRing = {
   shape: { kind: 'ring', inset: 2 },
   bands: [
     {
@@ -144,10 +144,10 @@ const blockRing: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /** R4 Value arc: a 270° guide with a thicker band filled to a value. */
-const valueArc: HudSpec = {
+const valueArc = {
   shape: { kind: 'arc', start: -135, sweep: 270, inset: 2 },
   bands: [
     { id: 'guide', width: 1 },
@@ -163,10 +163,10 @@ const valueArc: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /** F1 Chamfered frame: two opposite corners cut at 45°. */
-const chamferedFrame: HudSpec = {
+const chamferedFrame = {
   shape: {
     kind: 'frame',
     inset: 1,
@@ -193,14 +193,14 @@ const chamferedFrame: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /**
  * F2 Tabbed frame: a tab raised from the top edge near its end, filled
  * by a band as deep as the tab. The base outline is inset by the tab's
  * depth so that the tab stays inside the host box.
  */
-const tabbedFrame: HudSpec = {
+const tabbedFrame = {
   shape: {
     kind: 'frame',
     inset: 9,
@@ -231,13 +231,13 @@ const tabbedFrame: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /**
  * F3 Stepped frame: part of the bottom edge steps inward, and a short
  * notch on the top edge gives way first when the frame gets narrow.
  */
-const steppedFrame: HudSpec = {
+const steppedFrame = {
   shape: {
     kind: 'frame',
     inset: 1,
@@ -282,10 +282,10 @@ const steppedFrame: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /** F4 Double frame with thick accents on two corners. */
-const doubleFrame: HudSpec = {
+const doubleFrame = {
   shape: {
     kind: 'frame',
     inset: 1,
@@ -320,10 +320,10 @@ const doubleFrame: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /** F5 Corner brackets: only the four corners are drawn. */
-const cornerBrackets: HudSpec = {
+const cornerBrackets = {
   shape: { kind: 'frame', inset: 1, corners: { kind: 'fillet', radius: 6 } },
   bands: [
     {
@@ -349,14 +349,14 @@ const cornerBrackets: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /**
  * F6 Hatched edge strip: diagonal stripes alongside the bottom edge,
  * starting where the bottom-right chamfer ends. The stripes move; the
  * strip does not.
  */
-const hatchedFrame: HudSpec = {
+const hatchedFrame = {
   shape: {
     kind: 'frame',
     inset: 1,
@@ -385,14 +385,14 @@ const hatchedFrame: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /**
  * R5 Gear ring: blocks standing on the outside of a rim, turning. The
  * teeth are a band with a negative offset, outside the track, so the
  * ring is inset by their height to keep them inside the host box.
  */
-const gearRing: HudSpec = {
+const gearRing = {
   shape: { kind: 'ring', inset: 8 },
   bands: [
     { id: 'rim', width: 2 },
@@ -418,13 +418,13 @@ const gearRing: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /**
  * L1 Divider: a rule along the bottom with a thick stub at its start and
  * a row of small dashes drifting above it.
  */
-const dividerLine: HudSpec = {
+const dividerLine = {
   shape: { kind: 'line', inset: 2 },
   bands: [
     { id: 'rule', width: 1 },
@@ -451,13 +451,13 @@ const dividerLine: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /**
  * L2 Callout rule: a line that rises by a 45° jog part-way along and
  * stays up, with a dot on each end and a thick stretch into its end.
  */
-const calloutLine: HudSpec = {
+const calloutLine = {
   shape: {
     kind: 'line',
     inset: 3,
@@ -492,12 +492,13 @@ const calloutLine: HudSpec = {
       },
     },
   },
-};
+} satisfies HudSpec;
 
 /**
  * Ready-made drawings, by name. Each defines the states `enter` (it
  * draws on), `hover` and `alert`. They are plain data: spread one into
- * a spec of your own to change it.
+ * a spec of your own to change it. Each keeps its own precise type, so
+ * `presets['frame-tabbed'].shape` is known to be a frame.
  */
 export const presets = {
   'ring-segmented': segmentedRing,

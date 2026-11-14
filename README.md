@@ -93,6 +93,7 @@ Requires Node 22 or newer.
 - [docs/DESIGN_PRINCIPLES.md](./docs/DESIGN_PRINCIPLES.md) — code design rules
 - [docs/ROADMAP.md](./docs/ROADMAP.md) — milestones and acceptance criteria
 - [docs/DECISIONS.md](./docs/DECISIONS.md) — decision log
+- [docs/CUSTOMIZING.md](./docs/CUSTOMIZING.md) — making your own drawings: from scratch, from a preset, from options, from JSON
 - [docs/CATALOG.md](./docs/CATALOG.md) — the primitive catalogue
 - [docs/GLOSSARY.md](./docs/GLOSSARY.md) — vocabulary
 
