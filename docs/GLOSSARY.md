@@ -24,6 +24,7 @@ Use these terms in code, comments and docs. Do not introduce synonyms.
 | Ring | gyűrű | A shape whose track is a circle |
 | Arc | ívszegmens | An open circular track between two angles |
 | Frame | keret | A shape whose track is a closed polygon with operators |
+| Line | vonal | A shape whose track runs along one side of the host, open, with steps |
 | Segments | szegmensek | Pattern of equal drawn intervals with gaps |
 | Ticks | tickek | Pattern of very short intervals at even spacing |
 | Blocks | blokkok | Seeded irregular intervals |

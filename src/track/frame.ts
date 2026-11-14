@@ -1,8 +1,25 @@
-import type { Along, Corner, CornerOp, Edge, FrameShape, StepOp } from './shape.js';
+import type { Along, Corner, CornerOp, Edge, FrameShape, LineShape, StepOp } from './shape.js';
 import type { AnchorRef, Arc, Line, Piece } from './track.js';
 
+/** Which steps a layout placed, so that the next layout can keep them steady. */
+export interface Placement {
+  /** The steps that were placed, as `edge:index`. */
+  readonly placed: ReadonlySet<string>;
+}
+
+/** What a laid-out line remembers about how it was laid out. */
+export interface LineInfo extends Placement {
+  readonly edge: Edge;
+  /** Distance of the line from the side it runs along. */
+  readonly inset: number;
+  /** The deepest inward step placed on it; 0 if none. */
+  readonly stepDepth: number;
+  /** Which side of the direction of travel is the inside: 1 right, −1 left. */
+  readonly side: 1 | -1;
+}
+
 /** What a laid-out frame remembers about how it was laid out. */
-export interface FrameInfo {
+export interface FrameInfo extends Placement {
   /** Distance of the outline from the host box. */
   readonly inset: number;
   /** How much of each adjoining edge every corner takes, after fitting. */
@@ -10,8 +27,6 @@ export interface FrameInfo {
   readonly corner: Readonly<Record<Corner, CornerOp['kind']>>;
   /** The deepest inward step placed on each edge; 0 if none. */
   readonly stepDepth: Readonly<Record<Edge, number>>;
-  /** The steps that were placed, as `edge:index`. */
-  readonly placed: ReadonlySet<string>;
 }
 
 /**
@@ -68,10 +83,10 @@ export function layoutFrame(
   const right = left + boxWidth;
   const bottom = top + boxHeight;
   const edges: readonly Side[] = [
-    { name: 'top', px: left, py: top, ux: 1, uy: 0, length: boxWidth, from: 'tl', to: 'tr', reversed: false },
-    { name: 'right', px: right, py: top, ux: 0, uy: 1, length: boxHeight, from: 'tr', to: 'br', reversed: false },
-    { name: 'bottom', px: right, py: bottom, ux: -1, uy: 0, length: boxWidth, from: 'br', to: 'bl', reversed: true },
-    { name: 'left', px: left, py: bottom, ux: 0, uy: -1, length: boxHeight, from: 'bl', to: 'tl', reversed: true },
+    { name: 'top', px: left, py: top, ux: 1, uy: 0, length: boxWidth, from: 'tl', to: 'tr', reversed: false, turn: 1 },
+    { name: 'right', px: right, py: top, ux: 0, uy: 1, length: boxHeight, from: 'tr', to: 'br', reversed: false, turn: 1 },
+    { name: 'bottom', px: right, py: bottom, ux: -1, uy: 0, length: boxWidth, from: 'br', to: 'bl', reversed: true, turn: 1 },
+    { name: 'left', px: left, py: bottom, ux: 0, uy: -1, length: boxHeight, from: 'bl', to: 'tl', reversed: true, turn: 1 },
   ];
 
   // Pieces are collected as plain objects and numbered at the end, once
@@ -165,6 +180,88 @@ export function layoutFrame(
   };
 }
 
+/**
+ * Lays a line out along one side of the host box, with its steps, in
+ * reading direction. Steps follow the rules of frame edges.
+ *
+ * @returns The pieces from the line's start to its end, where the
+ *   anchors lie (`start`, `end` and the flat part of every step with an
+ *   id), and what to remember. No pieces means the line does not fit.
+ */
+export function layoutLine(
+  shape: LineShape,
+  width: number,
+  height: number,
+  previous?: Placement,
+): { pieces: Piece[]; refs: Record<string, AnchorRef>; info: LineInfo } {
+  const edge = shape.edge ?? 'bottom';
+  const inset = finiteOr(shape.inset, 0);
+  const pad = Math.max(0, finiteOr(shape.pad, 0));
+  const horizontal = edge === 'top' || edge === 'bottom';
+  const length = horizontal ? width : height;
+  // Travel is in reading direction, so the inside is on the right for
+  // the top and right sides and on the left for the bottom and left.
+  const turn = edge === 'top' || edge === 'right' ? 1 : -1;
+  const side: Side = {
+    name: edge,
+    px: edge === 'right' ? width : 0,
+    py: edge === 'bottom' ? height : 0,
+    ux: horizontal ? 1 : 0,
+    uy: horizontal ? 0 : 1,
+    length,
+    from: 'tl',
+    to: 'tl',
+    reversed: false,
+    turn,
+  };
+  const placedKeys = new Set<string>();
+  const drawn: Line[] = [];
+  const refs: Record<string, AnchorRef> = {};
+  let stepDepth = 0;
+  const info = (): LineInfo => ({ edge, inset, stepDepth, side: turn, placed: placedKeys });
+  if (!(length - pad * 2 > 0)) return { pieces: [], refs, info: info() };
+
+  const runEnd = length - pad;
+  // An inward step may not reach past the middle of the box.
+  const maxDepth = (horizontal ? height : width) / 2 - inset;
+  const steps = placeSteps(shape.steps ?? [], side, pad, runEnd, maxDepth, previous);
+  // A step that reaches an end of the line has no ramp there: the line
+  // simply starts or ends at the step's level.
+  const first = steps[0];
+  const opensHigh = first !== undefined && first.start <= pad + 1e-9;
+
+  let cursor = pointOn(side, pad, inset + (opensHigh ? first.depth : 0));
+  const lineTo = (along: number, inward: number): number => {
+    const to = pointOn(side, along, inset + inward);
+    const from = cursor;
+    cursor = to;
+    if (Math.hypot(to.x - from.x, to.y - from.y) < 1e-9) return -1;
+    drawn.push({ kind: 'line', x0: from.x, y0: from.y, x1: to.x, y1: to.y });
+    return drawn.length - 1;
+  };
+
+  refs['start'] = { ids: [], after: -1 };
+  let closesHigh = false;
+  for (const step of steps) {
+    placedKeys.add(step.key);
+    stepDepth = Math.max(stepDepth, step.depth);
+    const atStart = step.start <= pad + 1e-9;
+    const atEnd = step.end >= runEnd - 1e-9;
+    if (!atStart) {
+      lineTo(step.start, 0);
+      lineTo(step.start + step.ramp, step.depth);
+    }
+    const before = drawn.length - 1;
+    const flat = lineTo(atEnd ? runEnd : step.end - step.ramp, step.depth);
+    if (atEnd) closesHigh = true;
+    else lineTo(step.end, 0);
+    if (step.id !== undefined && flat >= 0) refs[step.id] = { ids: [flat], after: before };
+  }
+  if (!closesHigh) lineTo(runEnd, 0);
+  refs['end'] = { ids: [], after: drawn.length - 1 };
+  return { pieces: drawn.map((piece, id) => ({ ...piece, id })), refs, info: info() };
+}
+
 /** One side of the box, in the direction the outline travels along it. */
 interface Side {
   readonly name: Edge;
@@ -180,6 +277,8 @@ interface Side {
   readonly to: Corner;
   /** Whether travel runs against reading direction. */
   readonly reversed: boolean;
+  /** Which side of the direction of travel is the inside: 1 right, −1 left. */
+  readonly turn: 1 | -1;
 }
 
 /** A step that fits, in distances of travel along its side. */
@@ -200,8 +299,8 @@ interface PlacedStep {
  */
 function pointOn(side: Side, along: number, inward: number): { x: number; y: number } {
   return {
-    x: side.px + side.ux * along - side.uy * inward,
-    y: side.py + side.uy * along + side.ux * inward,
+    x: side.px + side.ux * along - side.uy * inward * side.turn,
+    y: side.py + side.uy * along + side.ux * inward * side.turn,
   };
 }
 
@@ -264,7 +363,7 @@ function placeSteps(
   runStart: number,
   runEnd: number,
   maxDepth: number,
-  previous: FrameInfo | undefined,
+  previous: Placement | undefined,
 ): PlacedStep[] {
   // The straight run in reading direction, where authors measure.
   const readStart = side.reversed ? side.length - runEnd : runStart;
@@ -277,8 +376,15 @@ function placeSteps(
     const high = Math.max(a, b);
     const depth = finiteOr(step.depth, 0);
     const key = `${side.name}:${order}`;
+    // Whether the step is declared to sit on an end of the run, in
+    // reading direction and then in direction of travel.
+    const ends = [declaredEnd(step.from), declaredEnd(step.to)];
+    const onReadStart = ends.includes('start');
+    const onReadEnd = ends.includes('end');
     return {
       key,
+      flushStart: side.reversed ? onReadEnd : onReadStart,
+      flushEnd: side.reversed ? onReadStart : onReadEnd,
       // Room to spare is asked only of steps that are coming back.
       spare: previous === undefined || previous.placed.has(key) ? 0 : HYSTERESIS,
       id: step.id,
@@ -297,14 +403,24 @@ function placeSteps(
     const fits =
       step.depth !== 0 &&
       step.depth < maxDepth &&
-      step.start >= runStart + step.spare - 1e-9 &&
-      step.end <= runEnd - step.spare + 1e-9 &&
+      // Within the run; and a step that is coming back needs room to
+      // spare at each end, unless it is meant to sit flush with that end.
+      step.start >= runStart - 1e-9 &&
+      step.end <= runEnd + 1e-9 &&
+      (step.flushStart || step.start >= runStart + step.spare) &&
+      (step.flushEnd || step.end <= runEnd - step.spare) &&
       // Both ramps and at least a pixel of flat part.
       step.end - step.start >= step.ramp * 2 + 1 + step.spare &&
       placed.every((other) => step.end <= other.start || step.start >= other.end);
     if (fits) placed.push(step);
   }
   return placed.sort((a, b) => a.start - b.start);
+}
+
+/** Which end of its run a position is declared to be, if either. */
+function declaredEnd(along: Along): 'start' | 'end' | undefined {
+  if ('fraction' in along) return along.fraction <= 0 ? 'start' : along.fraction >= 1 ? 'end' : undefined;
+  return along.offset === 0 && along.from !== 'center' ? along.from : undefined;
 }
 
 /** Not a number when the description is unusable, which then fits nowhere. */

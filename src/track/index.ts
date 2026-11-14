@@ -25,6 +25,7 @@ export type {
   Edge,
   EdgeOp,
   FrameShape,
+  LineShape,
   RingShape,
   ShapeSpec,
   StepOp,

@@ -15,6 +15,7 @@ A general way to give existing DOM elements the look of film and game HUDs: clea
 ## In scope (v1)
 
 - Frames: closed outlines with corner operators (chamfer, fillet) and the edge operator (step, which also makes tabs and notches), multiple bands, partial outlines, corner brackets.
+- Lines: a rule along one side of the host with the same steps, for dividers, underlines and callout rules.
 - Rings: concentric bands, open arcs, equal segments, ticks, dots, seeded irregular blocks, value arcs (progress).
 - Motion: drift along the track, rigid rotation, draw-on, value transitions, noise-driven flicker of a band or of its parts one by one, moving hatch stripes, state transitions.
 - Reactions: pointer and focus, host resize, visibility, element insertion and removal, custom state changes.
@@ -33,5 +34,5 @@ A general way to give existing DOM elements the look of film and game HUDs: clea
 
 ## Later
 
-- Notched and toothed ring outlines.
+- Steps on a ring's own outline (a gear look exists as a preset built from a band outside the rim).
 - Per-state colour sets and an optional glow layer.

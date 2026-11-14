@@ -107,5 +107,29 @@ export interface ArcShape {
   readonly radius?: number;
 }
 
+/**
+ * An open line along one side of the host box, with the same steps a
+ * frame edge can have: a divider, an underline, a callout rule.
+ *
+ * It travels in reading direction, left to right or top to bottom. Its
+ * inside, where bands with a positive offset go and where a step with a
+ * positive depth points, is the side toward the middle of the box. Its
+ * two ends are published as the anchors `start` and `end`.
+ *
+ * A step that reaches an end of the line has no ramp there: the line
+ * starts or ends at the step's level. That is how a line changes level
+ * once and stays there.
+ */
+export interface LineShape {
+  readonly kind: 'line';
+  /** The side it runs along. Default `'bottom'`. */
+  readonly edge?: Edge;
+  /** Distance from that side, toward the middle of the box. Default 0. */
+  readonly inset?: number;
+  /** Distance kept free at both ends. Default 0. */
+  readonly pad?: number;
+  readonly steps?: readonly EdgeOp[];
+}
+
 /** Everything `track.resolve` will accept. */
-export type ShapeSpec = FrameShape | RingShape | ArcShape;
+export type ShapeSpec = FrameShape | RingShape | ArcShape | LineShape;

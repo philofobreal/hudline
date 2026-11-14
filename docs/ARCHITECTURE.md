@@ -12,7 +12,7 @@ Two things are described here and must not be confused: the **visual model** (wh
 | Motion | A function of time that drives pattern and band parameters | drift, spin, draw-on, value, flicker |
 | State | A named parameter set; changing state interpolates | idle, hover, active, alert |
 
-A ring is a track that is a circle. A frame is a track that is a closed polygon with corner and edge operators. Nothing else distinguishes them.
+A ring is a track that is a circle. A frame is a track that is a closed polygon with corner and edge operators. A line is one side of a frame, left open. Nothing else distinguishes them.
 
 ## 2. Code modules
 
@@ -94,6 +94,7 @@ A band that only travels or flickers costs one `sample` and one changed attribut
 - **Band placement:** a band covers `offset` to `offset + width` from the track, toward the inside. Bands with equal offsets share their outer edge.
 - **Anchors:** `track` publishes named intervals on the track: the frame corners `tl`, `tr`, `br`, `bl` (a sharp corner has zero length) and the flat part of every step that has an `id`. Span patterns refer to them by name; a span on a missing anchor draws nothing. Anchors follow their pieces onto parallel tracks.
 - **Seam:** a ring starts at the top, a frame in the middle of the first straight run of its top edge, so the seam never lies on a corner.
+- **Lines:** a line travels in reading direction along one side. Its inside, where positive offsets and positive step depths point, is the side toward the middle of the box. A step declared to sit on an end of the line has no ramp there.
 - **One edge operator:** `step` displaces a stretch of an edge. A tab is a step with negative depth, a notch a short step with positive depth.
 - **Value:** a band's `value` (0–1) shows that share of the band from the track's start, by shortening the drawn path. The pattern is laid out for the whole band, so it can travel under a fixed value. Progress and draw-on are the same parameter.
 - **Travel:** a pattern's travel is a dash offset on a dash array as long as the band. A travelling pattern is laid out cyclically, also on an open band: what leaves at the end comes back in at the start.
@@ -101,7 +102,7 @@ A band that only travels or flickers costs one `sample` and one changed attribut
 - **Primitives:** line and circular arc. The offset of a line is a line; the offset of an arc is a concentric arc. Lengths are closed-form.
 - **Seamless patterns:** on a closed track the period is fitted to the length, `p' = L / round(L / p)`.
 - **Corner fit:** when the two corners of an edge ask for more than the edge has, both shrink by the same factor.
-- **Step placement:** a step is placed if both ramps and a pixel of flat part fit within the edge's straight run and it overlaps no step placed before it. Higher priority is placed first. Hysteresis at the threshold is not implemented yet (see the roadmap).
+- **Step placement:** a step is placed if both ramps and a pixel of flat part fit within the edge's straight run and it overlaps no step placed before it. Higher priority is placed first. A step that was left out comes back only with 4 px to spare, at every end it is not declared to sit on.
 - **Parallel tracks:** an offset shifts every piece and joins neighbours where they meet. What the offset consumes is dropped: a short line disappears and its neighbours join, a fillet turns sharp. The track is empty only when the shape itself is consumed.
 - **Band fit:** a band is left out when, in its idle shape, its inner edge would pass through the shape, or, on a shape made of arcs alone, would curve tighter than the band is wide (`track.holds`). This depends on the host's size only. A state that asks for more width than the shape holds gets as much as fits (`track.widest`); it never makes a band disappear.
 - **Rings:** the radius comes from the host's smaller side; band offsets and widths are fixed pixels. Tick, dot and segment counts drop to the largest that fits; ticks can drop in multiples of a number so that a coarser band stays aligned.

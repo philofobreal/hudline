@@ -10,7 +10,8 @@ Work happens only in the milestone marked **current**. Durations assume one expe
 | M3, 1.5 weeks | Frame track: corner and edge operators, bands, detail dropping | Catalogue frames are correct at three sizes; details drop by priority without flicker at thresholds | done; accepted by delegation. Hysteresis followed in M4 |
 | M4, 1 week | `mount`: observers, interactions, lifecycle | 50 animated elements run without dropped frames; no leaks after hosts are removed; reduced motion respected | done; tried by the maintainer, who found two defects that are fixed (D-036, D-039) |
 | M5, 1 week | Addressable bands, diagonal hatch, preset library | The frames and rings of the reference images come from presets | done; accepted by the maintainer |
-| M6 | Canvas renderer | Same spec renders on canvas within a 1 px visual tolerance | **current**: implemented; pixel comparison against SVG passes in Chrome for every preset; waits for the maintainer to look |
+| M6 | Canvas renderer | Same spec renders on canvas within a 1 px visual tolerance | done; accepted by the maintainer |
+| M7 | Line shape; gear, divider and callout presets | The new presets render in every state at every size on both renderers | **current**: implemented and tested; waits for the maintainer to look |
 
 ## Measured in M4
 

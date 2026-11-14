@@ -17,6 +17,11 @@ const RINGS = {
   'ring-scale': 'R2 · Scale ring',
   'ring-blocks': 'R3 · Irregular block ring',
   'arc-value': 'R4 · Value arc',
+  'ring-gear': 'R5 · Gear ring',
+};
+const LINES = {
+  'line-divider': 'L1 · Divider',
+  'line-callout': 'L2 · Callout rule',
 };
 const FRAMES = {
   'frame-chamfered': 'F1 · Chamfered frame',
@@ -27,6 +32,11 @@ const FRAMES = {
   'frame-hatched': 'F6 · Hatched edge strip',
 };
 const RING_SIZES = [48, 96, 200].map((size) => [size, size]);
+const LINE_SIZES = [
+  [120, 22],
+  [220, 26],
+  [340, 30],
+];
 const FRAME_SIZES = [
   [96, 44],
   [180, 90],
@@ -40,7 +50,7 @@ const cell = (id, [width, height], resizable = false) =>
 const section = (names, sizes, resizable) =>
   Object.entries(names)
     .map(([id, name]) => {
-      const cells = sizes.map((size) => cell(id, size)).join('') + (resizable ? cell(id, [240, 120], true) : '');
+      const cells = sizes.map((size) => cell(id, size)).join('') + (resizable ? cell(id, resizable, true) : '');
       return `<section><h2>${name} <code>${id}</code></h2><div class="row">${cells}</div></section>`;
     })
     .join('\n');
@@ -48,6 +58,7 @@ const section = (names, sizes, resizable) =>
 const inUse = `<section><h2>In use · content padded by the published insets, and a value kept up to date</h2><div class="row">
 <div class="panel" data-hud="frame-tabbed"><strong>NAV-07</strong><span>The text keeps clear of the frame because its padding comes from the four inset properties the library sets on this element.</span></div>
 <div class="panel" data-hud="frame-double"><strong>LINK</strong><span>Resize me by the corner. The padding follows.</span></div>
+<div class="titled"><h3 data-hud="line-callout">Telemetry</h3><span>A heading underlined by a callout rule; its bottom padding is the line's inset property.</span></div>
 <figure><div class="hud" id="gauge" data-hud="arc-value" style="width:120px;height:120px"><output id="readout">70 %</output></div>
 <figcaption><input id="level" type="range" min="0" max="100" value="70" aria-label="Level"></figcaption></figure>
 </div></section>`;
@@ -55,7 +66,7 @@ const inUse = `<section><h2>In use · content padded by the published insets, an
 const onCanvas = `<section><h2>On a canvas · the same presets drawn with <code class="plain">drawScene</code> in one 2D context</h2>
 <canvas id="board" width="640" height="150" style="width:640px;height:150px;max-width:100%"></canvas></section>`;
 
-const rows = `${inUse}\n${onCanvas}\n${section(FRAMES, FRAME_SIZES, true)}\n${section(RINGS, RING_SIZES, false)}`;
+const rows = `${inUse}\n${onCanvas}\n${section(FRAMES, FRAME_SIZES, [240, 120])}\n${section(LINES, LINE_SIZES, [260, 30])}\n${section(RINGS, RING_SIZES, false)}`;
 
 // The page script. Nothing here attaches anything by hand: the elements
 // ask in markup and one watch draws on them. The canvas is the one
@@ -155,7 +166,9 @@ const html = `<!doctype html>
   .hud:focus-visible { outline: 1px dashed var(--muted); outline-offset: 4px; }
   .panel { width: 260px; min-height: 110px; box-sizing: border-box; resize: both; overflow: hidden; display: grid; align-content: start; gap: 6px;
            padding: var(--hud-inset-top) var(--hud-inset-right) var(--hud-inset-bottom) var(--hud-inset-left); }
-  .panel span { color: var(--muted); }
+  .panel span, .titled span { color: var(--muted); }
+  .titled { width: 240px; display: grid; gap: 8px; }
+  .titled h3 { margin: 0; font-size: 14px; font-weight: 400; padding: 0 8px calc(var(--hud-inset-bottom) + 4px); }
   #gauge { display: grid; place-items: center; }
   input[type=range] { width: 120px; accent-color: currentColor; }
   .hud.resizable { resize: both; overflow: hidden; min-width: 16px; min-height: 16px; max-width: 100%; }

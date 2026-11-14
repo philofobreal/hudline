@@ -1,5 +1,5 @@
-import { layoutFrame } from './frame.js';
-import type { FrameInfo } from './frame.js';
+import { layoutFrame, layoutLine } from './frame.js';
+import type { FrameInfo, LineInfo } from './frame.js';
 import type { ShapeSpec } from './shape.js';
 
 /** A named interval on a track, as arc lengths from the track's start. */
@@ -16,7 +16,7 @@ export interface Anchor {
  *
  * Closed tracks travel clockwise. A ring starts at the top; a frame
  * starts in the middle of its top edge, so the seam lies on a straight
- * run and never on a corner.
+ * run and never on a corner. A line travels in reading direction.
  */
 export interface Track {
   /** Whether the end meets the start. */
@@ -30,9 +30,10 @@ export interface Track {
    */
   readonly path: string;
   /**
-   * Named intervals: the corners of a frame (`tl`, `tr`, `br`, `bl`) and
-   * the displaced flat part of every step that has an `id`. A sharp
-   * corner is an interval of zero length.
+   * Named intervals: the corners of a frame (`tl`, `tr`, `br`, `bl`), the
+   * two ends of a line (`start`, `end`) and the displaced flat part of
+   * every step that has an `id`. A sharp corner and a line's end are
+   * intervals of zero length.
    */
   readonly anchors: Readonly<Record<string, Anchor>>;
 }
@@ -89,6 +90,7 @@ export interface Insets {
 /** What a resolved shape remembers about itself, beyond its pieces. */
 type Layout =
   | { readonly kind: 'frame'; readonly info: FrameInfo }
+  | { readonly kind: 'line'; readonly info: LineInfo }
   | { readonly kind: 'round'; readonly radius: number; readonly width: number; readonly height: number };
 
 /** What this module keeps on a track beyond the public fields. */
@@ -125,7 +127,8 @@ const EMPTY: TrackData = {
  *   size hovering around a threshold does not make them flicker.
  * @returns The track, or an empty track when the size is not positive
  *   and finite or the shape does not fit (a ring radius of zero or less,
- *   a frame whose inset leaves no box).
+ *   a frame whose inset leaves no box, a line whose padding leaves no
+ *   length).
  */
 export function resolve(shape: ShapeSpec, width: number, height: number, previous?: Track): Track {
   if (!(width > 0 && height > 0) || !Number.isFinite(width + height)) return EMPTY;
@@ -139,6 +142,16 @@ export function resolve(shape: ShapeSpec, width: number, height: number, previou
       before?.kind === 'frame' ? before.info : undefined,
     );
     return pieces.length < 3 ? EMPTY : build(pieces, true, 1, refs, { kind: 'frame', info });
+  }
+  if (shape.kind === 'line') {
+    const before = (previous as Partial<TrackData> | undefined)?.layout;
+    const { pieces, refs, info } = layoutLine(
+      shape,
+      width,
+      height,
+      before?.kind === 'line' ? before.info : undefined,
+    );
+    return pieces.length === 0 ? EMPTY : build(pieces, false, info.side, refs, { kind: 'line', info });
   }
 
   const inset = finiteOr(shape.inset, 0);
@@ -243,6 +256,12 @@ export function clearance(track: Track, depth: number): Insets {
     const x = Math.max(0, layout.width / 2 - half);
     const y = Math.max(0, layout.height / 2 - half);
     return { top: y, right: x, bottom: y, left: x };
+  }
+
+  if (layout.kind === 'line') {
+    // Only the side the line runs along is taken.
+    const taken = Math.max(0, layout.info.inset + reach + layout.info.stepDepth);
+    return { top: 0, right: 0, bottom: 0, left: 0, [layout.info.edge]: taken };
   }
 
   const { info } = layout;

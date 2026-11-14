@@ -243,6 +243,7 @@ async function run() {
     ['ring-segmented', 120, 120], ['ring-scale', 120, 120], ['ring-blocks', 160, 160], ['arc-value', 120, 120],
     ['frame-chamfered', 240, 110], ['frame-tabbed', 240, 110], ['frame-stepped', 240, 110],
     ['frame-double', 240, 110], ['frame-brackets', 240, 110], ['frame-hatched', 240, 110],
+    ['ring-gear', 120, 120], ['line-divider', 260, 28], ['line-callout', 260, 30],
     ['ring-scale', 48, 48], ['frame-tabbed', 96, 44],
   ]) {
     // Late enough for the draw-on to be over, at a moment when things are mid-travel.

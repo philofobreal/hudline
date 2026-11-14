@@ -2,7 +2,7 @@
 
 Status: milestone M0 closed. The maintainer delegated the open decisions to the agent's recommendations on 2026-11-13 (see `DECISIONS.md`, D-011 to D-016).
 
-The entries below come from the maintainer's reference images. All ten are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. All ten render and move: `npm run gallery` writes `gallery.html`, in which every entry is a plain element that asks for its drawing with `data-hud`: the frames at three sizes plus one that can be resized by hand, the rings at three sizes, two panels whose padding comes from the published insets, and a gauge driven by `update`. Pointing at a shape enters its `hover` state; buttons set `alert` and replay `enter`.
+The entries below come from the maintainer's reference images. All thirteen are written as typed specs in `src/catalog/index.ts`; the compiler checks that the spec language can express them. All thirteen render and move: `npm run gallery` writes `gallery.html`, in which every entry is a plain element that asks for its drawing with `data-hud`: the frames at three sizes plus one that can be resized by hand, the rings at three sizes, two panels whose padding comes from the published insets, and a gauge driven by `update`. Pointing at a shape enters its `hover` state; buttons set `alert` and replay `enter`.
 
 ## Names
 
@@ -14,12 +14,15 @@ Every entry is a preset. In markup, `data-hud="name"` asks for it.
 | R2 | `ring-scale` |
 | R3 | `ring-blocks` |
 | R4 | `arc-value` |
+| R5 | `ring-gear` |
 | F1 | `frame-chamfered` |
 | F2 | `frame-tabbed` |
 | F3 | `frame-stepped` |
 | F4 | `frame-double` |
 | F5 | `frame-brackets` |
 | F6 | `frame-hatched` |
+| L1 | `line-divider` |
+| L2 | `line-callout` |
 
 ## Rings
 
@@ -29,6 +32,7 @@ Every entry is a preset. In markup, `data-hud="name"` asks for it.
 | R2 | Scale ring: 60 short ticks, 12 long ticks, thin circle | two tick bands sharing an offset; tick thinning |
 | R3 | Irregular block ring: four bands of seeded blocks turning at different speeds and directions | `blocks`, per-band spin, an addressable band whose blocks flicker one by one |
 | R4 | Value arc: 270° guide with a thicker band filled to a value | open track, `value`, a state override |
+| R5 | Gear ring: blocks standing on the outside of a turning rim | a band with a negative offset, outside the track |
 
 ## Frames
 
@@ -40,6 +44,13 @@ Every entry is a preset. In markup, `data-hud="name"` asks for it.
 | F4 | Double frame: two outlines and thick accents on two corners | band offsets, spans on corner anchors |
 | F5 | Corner brackets: only the four corners are drawn, rounded | fillets, spans on all corner anchors |
 | F6 | Hatched edge strip: moving diagonal stripes alongside the bottom edge | a hatch fill on a span that starts where a chamfer ends |
+
+## Lines
+
+| Id | Entry | What it exercises |
+|---|---|---|
+| L1 | Divider: a rule with a thick stub at its start and small dashes drifting above it | a line shape, a span on the `start` anchor, drift on an open band |
+| L2 | Callout rule: a line that rises by a 45° jog and stays up, a dot on each end, a thick stretch into its end | a step that sits on the end of the line, bands centred on the track, dots |
 
 ## How the open questions were settled
 
@@ -63,5 +74,7 @@ Every entry is a preset. In markup, `data-hud="name"` asks for it.
 - Flicker and breathing switch on and off at once when a state changes `motion`; only numbers glide.
 - A span is measured along the track and does not stop at corners: on a host shorter than the span, F6's strip runs on around the corner.
 - A state cannot change a band's fill.
+- A ring's own outline cannot have steps; `ring-gear` gets its teeth from a band outside the rim instead.
+- A dot or a span can be put on a line's end, but not on one end only with `dots`: the pattern places dots evenly, so two dots means both ends.
 - On a small ring a state such as faster spin is visible only as motion; a still picture of it looks like idle.
 - Block sizes are fixed pixels, so a seeded block band changes its arrangement when the host is resized. It is stable for a given size.

@@ -287,3 +287,11 @@ Decision: `npm run motion` plays every preset through its transitions, rasterise
 Why: Three defects in a row were found by the maintainer watching motion that the agent had only looked at in stills.
 Limit, stated plainly: it finds gross jumps only. Run against the code as it was before D-042, it does not find the jumping notches at the ends of the tab's fill: they are a few pixels within a frame that changes by hundreds. Small local artefacts still need eyes.
 Rejected: Making it part of the check (it needs a system tool and half a minute); claiming more for it than it does.
+
+## D-046 Lines are a shape; toothed rings are not, yet
+2026-11-14 · Status: accepted (delegated by the maintainer, as D-011)
+Decision: A fourth shape, `line`, runs along one side of the host in reading direction, with the steps of a frame edge. Its inside is the side toward the middle of the box; its ends are the anchors `start` and `end`. A step declared to sit on an end of the line has no ramp there, so a line can change level once and stay. Presets: `line-divider` and `line-callout`.
+A gear look is a preset, `ring-gear`, made from what already existed: a segmented band with a negative offset stands on the outside of a rim. Steps on a ring's own outline are not implemented.
+Why: Dividers and callout rules are everywhere in the reference images, and a line is one side of a frame, so nearly all of it existed. Steps on a circle are different: the parallel of a radial wall is not radial, an offset can consume a whole tooth, and getting that wrong makes bands vanish. The look can be had without that risk.
+Rejected: Outline steps on rings now (a rewrite of the offset code for one look); connector lines between separate elements (a layout problem between elements, still a non-goal).
+Found on the way: hysteresis made a step that ends on the end of its run impossible to bring back, because it could never have room to spare there. Room to spare is now asked only at ends the step is not declared to sit on.

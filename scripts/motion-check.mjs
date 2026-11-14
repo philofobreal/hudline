@@ -2,7 +2,10 @@
 // transitions, each frame is rasterised, and consecutive frames are
 // compared. Smooth motion changes about as much from one frame to the
 // next as it did the frame before; a frame that changes several times
-// more than both its neighbours is reported.
+// more than both its neighbours, by more than a fiftieth of what is
+// drawn, is reported. It finds gross jumps. It does not find small
+// local artefacts: those are a few pixels in a frame that changes by
+// hundreds.
 //
 // This is a development aid, not part of `npm run check`: it needs
 // `rsvg-convert` (librsvg) on the PATH, a rasteriser that antialiases
@@ -18,7 +21,12 @@ import { createPlayer, presets } from '../dist/index.js';
 
 const FPS = 30;
 const SCALE = 3; // Rasterise magnified, so that sub-pixel artefacts count.
-const SIZES = { ring: [[48, 48], [120, 120]], arc: [[48, 48], [120, 120]], frame: [[96, 44], [240, 110]] };
+const SIZES = {
+  ring: [[48, 48], [120, 120]],
+  arc: [[48, 48], [120, 120]],
+  frame: [[96, 44], [240, 110]],
+  line: [[120, 22], [300, 30]],
+};
 // What happens when, in seconds. Each change is followed long enough to settle.
 const SCRIPT = [
   [1.6, 'hover'],
@@ -95,6 +103,13 @@ function decodePng(png) {
   return pixels;
 }
 
+/** How many pixels of a frame are drawn on. */
+function lit(image) {
+  let count = 0;
+  for (let i = 0; i < image.length; i++) if (image[i] > 40) count++;
+  return count;
+}
+
 function difference(a, b) {
   let sum = 0;
   for (let i = 0; i < a.length; i++) sum += Math.abs(a[i] - b[i]);
@@ -115,14 +130,18 @@ try {
         while (step < SCRIPT.length && SCRIPT[step][0] <= time) player.set(SCRIPT[step++][1], time);
         const image = raster(player.markup(time), width, height);
         frames++;
-        if (previous !== undefined) changes.push({ time, amount: difference(previous, image) });
+        if (previous !== undefined) {
+          changes.push({ time, amount: difference(previous, image), drawn: lit(image) });
+        }
         previous = image;
       }
       // A jump: far more change than on either side, and more than a
-      // few pixels' worth, so that rounding noise is not reported.
-      const floor = 4 * SCALE * SCALE;
+      // fiftieth of what is drawn. Below that lies the rasteriser's own
+      // stepping: a long straight edge that creeps across a pixel row at
+      // the tail of a transition changes the whole row at once.
       for (let i = 1; i < changes.length - 1; i++) {
-        const { time, amount } = changes[i];
+        const { time, amount, drawn } = changes[i];
+        const floor = Math.max(4 * SCALE * SCALE, drawn / 50);
         const around = Math.max(changes[i - 1].amount, changes[i + 1].amount);
         // The frame on which a state changes may differ a lot by design
         // (motion switches at once); it is not a jump.

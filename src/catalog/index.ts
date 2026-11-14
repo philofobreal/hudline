@@ -388,6 +388,113 @@ const hatchedFrame: HudSpec = {
 };
 
 /**
+ * R5 Gear ring: blocks standing on the outside of a rim, turning. The
+ * teeth are a band with a negative offset, outside the track, so the
+ * ring is inset by their height to keep them inside the host box.
+ */
+const gearRing: HudSpec = {
+  shape: { kind: 'ring', inset: 8 },
+  bands: [
+    { id: 'rim', width: 2 },
+    {
+      id: 'teeth',
+      offset: -6,
+      width: 6,
+      pattern: { kind: 'segments', count: 16, gap: 9 },
+      motion: { spin: 12 },
+    },
+    { id: 'hub', offset: 8, width: 1, opacity: 0.6 },
+  ],
+  states: {
+    enter: {
+      bands: { rim: { value: 0 }, teeth: { opacity: 0 }, hub: { value: 0 } },
+      settle: DRAW_ON,
+    },
+    hover: { bands: { rim: { width: 3 }, teeth: { motion: { spin: 70 } } } },
+    alert: {
+      bands: {
+        rim: { motion: { flicker: { seed: 2, rate: 10, depth: 0.5 } } },
+        teeth: { motion: { spin: -150, flicker: { seed: 7, rate: 10, depth: 0.6 } } },
+      },
+    },
+  },
+};
+
+/**
+ * L1 Divider: a rule along the bottom with a thick stub at its start and
+ * a row of small dashes drifting above it.
+ */
+const dividerLine: HudSpec = {
+  shape: { kind: 'line', inset: 2 },
+  bands: [
+    { id: 'rule', width: 1 },
+    { id: 'stub', width: 3, pattern: { kind: 'spans', spans: [{ anchor: 'start', after: 44 }] } },
+    {
+      id: 'marks',
+      offset: 5,
+      width: 3,
+      opacity: 0.6,
+      pattern: { kind: 'dashes', dash: 2, gap: 7 },
+      motion: { drift: 14 },
+    },
+  ],
+  states: {
+    enter: {
+      bands: { rule: { value: 0 }, stub: { opacity: 0 }, marks: { opacity: 0 } },
+      settle: DRAW_ON,
+    },
+    hover: { bands: { rule: { width: 2 }, stub: { width: 5 }, marks: { opacity: 1 } } },
+    alert: {
+      bands: {
+        rule: { motion: { flicker: { seed: 3, rate: 10, depth: 0.5 } } },
+        marks: { opacity: 1, motion: { drift: 120 } },
+      },
+    },
+  },
+};
+
+/**
+ * L2 Callout rule: a line that rises by a 45° jog part-way along and
+ * stays up, with a dot on each end and a thick stretch into its end.
+ */
+const calloutLine: HudSpec = {
+  shape: {
+    kind: 'line',
+    inset: 3,
+    pad: 3,
+    steps: [
+      {
+        kind: 'step',
+        id: 'high',
+        from: { fraction: 0.4 },
+        to: { from: 'end', offset: 0 },
+        depth: 10,
+      },
+    ],
+  },
+  bands: [
+    // The rule and the dots are centred on the track: half of each band
+    // lies on either side of it, so the dots sit on the rule's ends.
+    { id: 'rule', offset: -0.5, width: 1 },
+    { id: 'nodes', offset: -2.5, width: 5, pattern: { kind: 'dots', count: 2 } },
+    { id: 'lead', width: 3, pattern: { kind: 'spans', spans: [{ anchor: 'end', before: 40 }] } },
+  ],
+  states: {
+    enter: {
+      bands: { rule: { value: 0 }, nodes: { opacity: 0 }, lead: { opacity: 0 } },
+      settle: DRAW_ON,
+    },
+    hover: { bands: { rule: { offset: -1, width: 2 }, lead: { width: 5 } } },
+    alert: {
+      bands: {
+        rule: { motion: { flicker: { seed: 5, rate: 9, depth: 0.5 } } },
+        lead: { width: 5, motion: { flicker: { seed: 6, rate: 9, depth: 0.8 } } },
+      },
+    },
+  },
+};
+
+/**
  * Ready-made drawings, by name. Each defines the states `enter` (it
  * draws on), `hover` and `alert`. They are plain data: spread one into
  * a spec of your own to change it.
@@ -396,6 +503,7 @@ export const presets = {
   'ring-segmented': segmentedRing,
   'ring-scale': scaleRing,
   'ring-blocks': blockRing,
+  'ring-gear': gearRing,
   'arc-value': valueArc,
   'frame-chamfered': chamferedFrame,
   'frame-tabbed': tabbedFrame,
@@ -403,6 +511,8 @@ export const presets = {
   'frame-double': doubleFrame,
   'frame-brackets': cornerBrackets,
   'frame-hatched': hatchedFrame,
+  'line-divider': dividerLine,
+  'line-callout': calloutLine,
 } as const satisfies Readonly<Record<string, HudSpec>>;
 
 /**
@@ -420,4 +530,7 @@ export const catalog = {
   F4: doubleFrame,
   F5: cornerBrackets,
   F6: hatchedFrame,
+  R5: gearRing,
+  L1: dividerLine,
+  L2: calloutLine,
 } as const satisfies Readonly<Record<string, HudSpec>>;

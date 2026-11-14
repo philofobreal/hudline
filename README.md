@@ -22,7 +22,7 @@ import { presets, watch } from 'hudline';
 watch(presets);   // draws on every element that asks, now and as the page changes
 ```
 
-Ten presets come with the library; `docs/CATALOG.md` lists them. They are plain data, so your own specs sit beside them:
+Thirteen presets come with the library: frames, rings, an arc and lines; `docs/CATALOG.md` lists them. They are plain data, so your own specs sit beside them:
 
 ```ts
 import { attach, presets, watch, type HudSpec } from 'hudline';

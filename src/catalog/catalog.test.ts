@@ -9,7 +9,7 @@ const entries: readonly (readonly [string, HudSpec])[] = Object.entries(catalog)
 test('the catalogue covers every entry of docs/CATALOG.md', () => {
   assert.deepEqual(
     entries.map(([name]) => name),
-    ['R1', 'R2', 'R3', 'R4', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6'],
+    ['R1', 'R2', 'R3', 'R4', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'R5', 'L1', 'L2'],
   );
 });
 
@@ -32,15 +32,18 @@ test('band ids are unique within an entry and states refer to existing ids', () 
 
 test('spans refer to corners or to steps declared on the same frame', () => {
   for (const [name, spec] of entries) {
-    const anchors = new Set(['tl', 'tr', 'br', 'bl']);
-    if (spec.shape.kind === 'frame') {
-      for (const ops of Object.values(spec.shape.edges ?? {})) {
-        for (const op of ops) if (op.id !== undefined) anchors.add(op.id);
-      }
-    }
+    const shape = spec.shape;
+    const anchors = new Set(shape.kind === 'line' ? ['start', 'end'] : ['tl', 'tr', 'br', 'bl']);
+    const steps =
+      shape.kind === 'frame'
+        ? Object.values(shape.edges ?? {}).flat()
+        : shape.kind === 'line'
+          ? (shape.steps ?? [])
+          : [];
+    for (const op of steps) if (op.id !== undefined) anchors.add(op.id);
     for (const band of spec.bands) {
       if (band.pattern?.kind !== 'spans') continue;
-      assert.equal(spec.shape.kind, 'frame', name);
+      assert.ok(shape.kind === 'frame' || shape.kind === 'line', name);
       for (const span of band.pattern.spans) assert.ok(anchors.has(span.anchor), name);
     }
   }
@@ -63,6 +66,8 @@ test('every state shows at every size at which anything is drawn', () => {
     [200, 200],
     [96, 44],
     [60, 30],
+    [260, 28],
+    [120, 20],
     [48, 48],
     [32, 32],
     [20, 20],
@@ -86,5 +91,5 @@ test('every catalogue entry is offered as a preset under a readable name', () =>
   const offered = Object.values(presets) as readonly HudSpec[];
   assert.equal(offered.length, entries.length);
   for (const [name, spec] of entries) assert.ok(offered.includes(spec), name);
-  for (const name of Object.keys(presets)) assert.match(name, /^(ring|arc|frame)-[a-z]+$/);
+  for (const name of Object.keys(presets)) assert.match(name, /^(ring|arc|frame|line)-[a-z]+$/);
 });
